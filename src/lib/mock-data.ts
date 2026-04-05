@@ -7,20 +7,31 @@ export interface User {
   isAnonymous: boolean;
 }
 
+export interface CircleGroup {
+  id: string;
+  name: string;
+  emoji: string;
+  memberCount: number;
+}
+
 export interface EventItem {
   id: string;
   title: string;
   description: string;
   location: string;
   date: string;
+  endDate?: string;
   time: string;
   coverImage: string;
   tags: string[];
+  circleGroups: string[];
   participantLimit: number;
   participants: User[];
   organizer: User;
   privacy: "public" | "private" | "anonymous";
   status: "upcoming" | "active" | "completed";
+  anonymousInvites: string[];
+  importedFrom?: "facebook" | "instagram" | "google" | null;
 }
 
 export interface Message {
@@ -57,6 +68,15 @@ export const INTEREST_TAGS = [
   "💃 Dancing",
   "🏕️ Camping",
   "🚴 Cycling",
+];
+
+export const mockCircleGroups: CircleGroup[] = [
+  { id: "cg1", name: "Uni Friends", emoji: "🎓", memberCount: 12 },
+  { id: "cg2", name: "Uni Close Friends", emoji: "💛", memberCount: 5 },
+  { id: "cg3", name: "ABC Company Friends", emoji: "💼", memberCount: 8 },
+  { id: "cg4", name: "Gym Crew", emoji: "💪", memberCount: 6 },
+  { id: "cg5", name: "Travel Buddies", emoji: "✈️", memberCount: 4 },
+  { id: "cg6", name: "Neighborhood Pals", emoji: "🏡", memberCount: 9 },
 ];
 
 export const mockUsers: User[] = [
