@@ -1,14 +1,20 @@
 import { useState } from "react";
-import { ArrowLeft, Camera } from "lucide-react";
+import { ArrowLeft, Camera, Plus, X, Upload, Users, UserPlus, CalendarRange } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/contexts/AppContext";
-import { INTEREST_TAGS } from "@/lib/mock-data";
+import { INTEREST_TAGS, mockCircleGroups, mockUsers } from "@/lib/mock-data";
 
 interface CreateEventProps {
   onBack: () => void;
   onCreated: () => void;
 }
+
+const IMPORT_SOURCES = [
+  { id: "facebook", label: "Facebook", emoji: "📘" },
+  { id: "instagram", label: "Instagram", emoji: "📸" },
+  { id: "google", label: "Google Calendar", emoji: "📅" },
+];
 
 const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
   const { user } = useApp();
@@ -16,10 +22,15 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [date, setDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [isMultiDay, setIsMultiDay] = useState(false);
   const [time, setTime] = useState("");
   const [limit, setLimit] = useState("10");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedCircles, setSelectedCircles] = useState<string[]>([]);
   const [privacy, setPrivacy] = useState<"public" | "private" | "anonymous">("public");
+  const [anonymousInvites, setAnonymousInvites] = useState<string[]>([]);
+  const [showImportModal, setShowImportModal] = useState(false);
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
@@ -27,11 +38,29 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
     );
   };
 
+  const toggleCircle = (id: string) => {
+    setSelectedCircles((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    );
+  };
+
+  const toggleAnonymousInvite = (userId: string) => {
+    setAnonymousInvites((prev) =>
+      prev.includes(userId) ? prev.filter((u) => u !== userId) : [...prev, userId]
+    );
+  };
+
   const handleCreate = () => {
     if (!title || !description || !location || !date) return;
-    // In real app, this would save to DB
     onCreated();
   };
+
+  const handleImport = (source: string) => {
+    setShowImportModal(false);
+    // Placeholder: in real app, would open OAuth flow / import UI
+  };
+
+  const invitableUsers = mockUsers.filter((u) => u.id !== user?.id && !u.isAnonymous);
 
   return (
     <div className="pb-24 animate-fade-in">
@@ -39,8 +68,44 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
         <button onClick={onBack} className="text-foreground">
           <ArrowLeft size={22} />
         </button>
-        <h1 className="text-xl font-bold text-foreground">Create Event</h1>
+        <h1 className="text-xl font-bold text-foreground flex-1">Create Event</h1>
+        <button
+          onClick={() => setShowImportModal(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary text-secondary-foreground text-xs font-medium"
+        >
+          <Upload size={14} />
+          Import
+        </button>
       </div>
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50" onClick={() => setShowImportModal(false)}>
+          <div className="w-full max-w-lg bg-card rounded-t-2xl p-5 pb-8 animate-slide-up" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-card-foreground">Import Event From</h3>
+              <button onClick={() => setShowImportModal(false)} className="text-muted-foreground">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="space-y-2">
+              {IMPORT_SOURCES.map((src) => (
+                <button
+                  key={src.id}
+                  onClick={() => handleImport(src.id)}
+                  className="w-full flex items-center gap-3 p-4 rounded-xl bg-secondary hover:bg-secondary/80 transition-colors"
+                >
+                  <span className="text-xl">{src.emoji}</span>
+                  <span className="text-sm font-medium text-secondary-foreground">{src.label}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground mt-4 text-center">
+              Connect your account to import event details automatically
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="px-5 space-y-5">
         {/* Cover image placeholder */}
@@ -80,16 +145,46 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm font-medium text-foreground mb-1.5 block">Date</label>
-              <Input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="h-12 rounded-xl bg-secondary border-0 text-foreground"
-              />
+          {/* Multi-day toggle + dates */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-sm font-medium text-foreground">Date</label>
+              <button
+                onClick={() => setIsMultiDay(!isMultiDay)}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  isMultiDay ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
+                }`}
+              >
+                <CalendarRange size={12} />
+                Multi-day
+              </button>
             </div>
+            <div className={`grid gap-3 ${isMultiDay ? "grid-cols-2" : "grid-cols-1"}`}>
+              <div>
+                {isMultiDay && <p className="text-xs text-muted-foreground mb-1">Start</p>}
+                <Input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  className="h-12 rounded-xl bg-secondary border-0 text-foreground"
+                />
+              </div>
+              {isMultiDay && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">End</p>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    min={date}
+                    className="h-12 rounded-xl bg-secondary border-0 text-foreground"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-sm font-medium text-foreground mb-1.5 block">Time</label>
               <Input
@@ -99,16 +194,15 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
                 className="h-12 rounded-xl bg-secondary border-0 text-foreground"
               />
             </div>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-foreground mb-1.5 block">Max Participants</label>
-            <Input
-              type="number"
-              value={limit}
-              onChange={(e) => setLimit(e.target.value)}
-              className="h-12 rounded-xl bg-secondary border-0 text-foreground"
-            />
+            <div>
+              <label className="text-sm font-medium text-foreground mb-1.5 block">Max Participants</label>
+              <Input
+                type="number"
+                value={limit}
+                onChange={(e) => setLimit(e.target.value)}
+                className="h-12 rounded-xl bg-secondary border-0 text-foreground"
+              />
+            </div>
           </div>
 
           {/* Privacy */}
@@ -126,6 +220,71 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
                   }`}
                 >
                   {p}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Circle Groups */}
+          <div>
+            <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-1.5">
+              <Users size={14} className="text-primary" />
+              Share with Circles
+            </label>
+            <p className="text-xs text-muted-foreground mb-2">Tag your friend groups to notify them</p>
+            <div className="flex flex-wrap gap-2">
+              {mockCircleGroups.map((group) => (
+                <button
+                  key={group.id}
+                  onClick={() => toggleCircle(group.id)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition-colors ${
+                    selectedCircles.includes(group.id)
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground"
+                  }`}
+                >
+                  <span>{group.emoji}</span>
+                  <span>{group.name}</span>
+                  <span className="opacity-60">({group.memberCount})</span>
+                </button>
+              ))}
+              <button className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium border-2 border-dashed border-border text-muted-foreground hover:border-primary/50 transition-colors">
+                <Plus size={12} />
+                New Circle
+              </button>
+            </div>
+          </div>
+
+          {/* Anonymous Invites */}
+          <div>
+            <label className="text-sm font-medium text-foreground mb-2 block flex items-center gap-1.5">
+              <UserPlus size={14} className="text-accent" />
+              Anonymous Invites
+            </label>
+            <p className="text-xs text-muted-foreground mb-2">
+              Invite people without revealing who suggested them
+            </p>
+            <div className="space-y-2">
+              {invitableUsers.map((u) => (
+                <button
+                  key={u.id}
+                  onClick={() => toggleAnonymousInvite(u.id)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl transition-colors ${
+                    anonymousInvites.includes(u.id)
+                      ? "bg-accent/15 border border-accent/30"
+                      : "bg-secondary"
+                  }`}
+                >
+                  <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-semibold text-muted-foreground">
+                    {u.name[0]}
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-sm font-medium text-foreground">{u.name}</p>
+                    <p className="text-xs text-muted-foreground">{u.interests.slice(0, 2).join(", ")}</p>
+                  </div>
+                  {anonymousInvites.includes(u.id) && (
+                    <span className="text-xs text-accent font-medium">Invited</span>
+                  )}
                 </button>
               ))}
             </div>
