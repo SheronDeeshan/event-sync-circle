@@ -101,6 +101,7 @@ const EventDetail = ({ event, onBack, onJoinSpace }: EventDetailProps) => {
               </div>
             </div>
           )}
+        </div>
 
         <div className="mb-6">
           <h2 className="font-semibold text-foreground mb-2">About</h2>
