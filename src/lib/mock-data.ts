@@ -7,20 +7,31 @@ export interface User {
   isAnonymous: boolean;
 }
 
+export interface CircleGroup {
+  id: string;
+  name: string;
+  emoji: string;
+  memberCount: number;
+}
+
 export interface EventItem {
   id: string;
   title: string;
   description: string;
   location: string;
   date: string;
+  endDate?: string;
   time: string;
   coverImage: string;
   tags: string[];
+  circleGroups: string[];
   participantLimit: number;
   participants: User[];
   organizer: User;
   privacy: "public" | "private" | "anonymous";
   status: "upcoming" | "active" | "completed";
+  anonymousInvites: string[];
+  importedFrom?: "facebook" | "instagram" | "google" | null;
 }
 
 export interface Message {
@@ -59,6 +70,15 @@ export const INTEREST_TAGS = [
   "🚴 Cycling",
 ];
 
+export const mockCircleGroups: CircleGroup[] = [
+  { id: "cg1", name: "Uni Friends", emoji: "🎓", memberCount: 12 },
+  { id: "cg2", name: "Uni Close Friends", emoji: "💛", memberCount: 5 },
+  { id: "cg3", name: "ABC Company Friends", emoji: "💼", memberCount: 8 },
+  { id: "cg4", name: "Gym Crew", emoji: "💪", memberCount: 6 },
+  { id: "cg5", name: "Travel Buddies", emoji: "✈️", memberCount: 4 },
+  { id: "cg6", name: "Neighborhood Pals", emoji: "🏡", memberCount: 9 },
+];
+
 export const mockUsers: User[] = [
   { id: "1", name: "Alex Chen", email: "alex@circle.app", avatar: "", interests: ["🥾 Hiking", "📸 Photography", "🏕️ Camping"], isAnonymous: false },
   { id: "2", name: "Maya Johnson", email: "maya@circle.app", avatar: "", interests: ["✈️ Travel", "🍳 Cooking", "🎨 Art"], isAnonymous: false },
@@ -79,11 +99,13 @@ export const mockEvents: EventItem[] = [
     time: "5:30 AM",
     coverImage: "",
     tags: ["🥾 Hiking", "📸 Photography", "🏕️ Camping"],
+    circleGroups: ["cg1"],
     participantLimit: 12,
     participants: [mockUsers[0], mockUsers[2]],
     organizer: mockUsers[2],
     privacy: "public",
     status: "upcoming",
+    anonymousInvites: [],
   },
   {
     id: "2",
@@ -91,14 +113,17 @@ export const mockEvents: EventItem[] = [
     description: "A relaxing weekend trip to Malibu with surfing, bonfires, and great company. All skill levels welcome!",
     location: "Malibu Beach, California",
     date: "2026-04-18",
+    endDate: "2026-04-20",
     time: "10:00 AM",
     coverImage: "",
     tags: ["✈️ Travel", "🏄 Surfing"],
+    circleGroups: ["cg2", "cg5"],
     participantLimit: 8,
     participants: [mockUsers[1], mockUsers[3]],
     organizer: mockUsers[1],
     privacy: "public",
     status: "upcoming",
+    anonymousInvites: ["3"],
   },
   {
     id: "3",
@@ -109,11 +134,13 @@ export const mockEvents: EventItem[] = [
     time: "7:00 PM",
     coverImage: "",
     tags: ["🎵 Music", "💃 Dancing"],
+    circleGroups: [],
     participantLimit: 20,
     participants: [mockUsers[3]],
     organizer: mockUsers[4],
     privacy: "anonymous",
     status: "upcoming",
+    anonymousInvites: ["1", "2"],
   },
   {
     id: "4",
@@ -124,11 +151,13 @@ export const mockEvents: EventItem[] = [
     time: "6:00 PM",
     coverImage: "",
     tags: ["🎨 Art", "🍳 Cooking"],
+    circleGroups: ["cg3"],
     participantLimit: 15,
     participants: [mockUsers[1]],
     organizer: mockUsers[1],
     privacy: "public",
     status: "upcoming",
+    anonymousInvites: [],
   },
 ];
 

@@ -1,7 +1,7 @@
-import { ArrowLeft, MapPin, Calendar, Users, Clock, Shield, Share2 } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Users, Clock, Shield, Share2, CalendarRange } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/contexts/AppContext";
-import type { EventItem } from "@/lib/mock-data";
+import { mockCircleGroups, type EventItem } from "@/lib/mock-data";
 import eventHike from "@/assets/event-hike.jpg";
 import eventBeach from "@/assets/event-beach.jpg";
 import eventMusic from "@/assets/event-music.jpg";
@@ -33,6 +33,10 @@ const EventDetail = ({ event, onBack, onJoinSpace }: EventDetailProps) => {
     day: "numeric",
     year: "numeric",
   });
+  const endDateStr = event.endDate
+    ? new Date(event.endDate + "T00:00:00").toLocaleDateString("en", { month: "long", day: "numeric" })
+    : null;
+  const eventCircles = mockCircleGroups.filter((g) => event.circleGroups.includes(g.id));
 
   return (
     <div className="pb-24 animate-fade-in">
@@ -64,8 +68,8 @@ const EventDetail = ({ event, onBack, onJoinSpace }: EventDetailProps) => {
 
         <div className="space-y-3 mb-5">
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <Calendar size={16} className="text-primary" />
-            <span>{formattedDate}</span>
+            {endDateStr ? <CalendarRange size={16} className="text-primary" /> : <Calendar size={16} className="text-primary" />}
+            <span>{formattedDate}{endDateStr ? ` — ${endDateStr}` : ""}</span>
           </div>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <Clock size={16} className="text-primary" />
@@ -83,6 +87,18 @@ const EventDetail = ({ event, onBack, onJoinSpace }: EventDetailProps) => {
             <div className="flex items-center gap-3 text-sm text-accent">
               <Shield size={16} />
               <span>Anonymous event — organizer identity hidden</span>
+            </div>
+          )}
+          {eventCircles.length > 0 && (
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <Users size={16} className="text-primary" />
+              <div className="flex flex-wrap gap-1.5">
+                {eventCircles.map((g) => (
+                  <span key={g.id} className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">
+                    {g.emoji} {g.name}
+                  </span>
+                ))}
+              </div>
             </div>
           )}
         </div>
