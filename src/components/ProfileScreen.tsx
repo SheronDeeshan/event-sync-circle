@@ -210,7 +210,4 @@ const ProfileScreen = () => {
   );
 };
 
-// Need to import Check from lucide
-import { Check } from "lucide-react";
-
 export default ProfileScreen;

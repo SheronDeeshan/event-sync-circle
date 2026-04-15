@@ -3,7 +3,7 @@ import { ArrowLeft, Camera, Plus, X, Upload, Users, UserPlus, CalendarRange } fr
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/contexts/AppContext";
-import { INTEREST_TAGS, mockCircleGroups, mockUsers } from "@/lib/mock-data";
+import { INTEREST_TAGS, mockUsers } from "@/lib/mock-data";
 
 interface CreateEventProps {
   onBack: () => void;
@@ -17,7 +17,7 @@ const IMPORT_SOURCES = [
 ];
 
 const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
-  const { user } = useApp();
+  const { user, circleGroups, createEvent } = useApp();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
@@ -52,6 +52,21 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
 
   const handleCreate = () => {
     if (!title || !description || !location || !date) return;
+    createEvent({
+      title,
+      description,
+      location,
+      date,
+      endDate: isMultiDay ? endDate : undefined,
+      time,
+      coverImage: "",
+      tags: selectedTags,
+      circleGroups: selectedCircles,
+      participantLimit: parseInt(limit) || 10,
+      privacy,
+      anonymousInvites,
+      importedFrom: null,
+    });
     onCreated();
   };
 
@@ -233,7 +248,7 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
             </label>
             <p className="text-xs text-muted-foreground mb-2">Tag your friend groups to notify them</p>
             <div className="flex flex-wrap gap-2">
-              {mockCircleGroups.map((group) => (
+              {circleGroups.map((group) => (
                 <button
                   key={group.id}
                   onClick={() => toggleCircle(group.id)}
@@ -245,13 +260,9 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
                 >
                   <span>{group.emoji}</span>
                   <span>{group.name}</span>
-                  <span className="opacity-60">({group.memberCount})</span>
+                  <span className="opacity-60">({group.members.length})</span>
                 </button>
               ))}
-              <button className="flex items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium border-2 border-dashed border-border text-muted-foreground hover:border-primary/50 transition-colors">
-                <Plus size={12} />
-                New Circle
-              </button>
             </div>
           </div>
 
