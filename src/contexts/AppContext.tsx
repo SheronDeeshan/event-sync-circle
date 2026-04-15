@@ -104,6 +104,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const handleJoinRequest = (eventId: string, requestId: string, status: JoinRequestStatus) => {
+    const { mockUsers } = require("@/lib/mock-data");
     setEvents((prev) =>
       prev.map((e) => {
         if (e.id !== eventId) return e;
@@ -114,11 +115,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         );
         let updatedParticipants = e.participants;
         if (status === "approved") {
-          const approvedUser = mockEvents
-            .flatMap((ev) => ev.participants)
-            .find((u) => u.id === request.userId);
-          const allUsers = [...(await import("@/lib/mock-data")).mockUsers];
-          const userToAdd = allUsers.find((u) => u.id === request.userId);
+          const userToAdd = mockUsers.find((u: User) => u.id === request.userId);
           if (userToAdd && !updatedParticipants.find((p) => p.id === request.userId)) {
             updatedParticipants = [...updatedParticipants, userToAdd];
           }
