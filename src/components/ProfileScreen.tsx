@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Settings, LogOut, ChevronRight, Plus, X, Trash2, Edit2 } from "lucide-react";
+import { Settings, LogOut, ChevronRight, Plus, X, Trash2, Edit2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/contexts/AppContext";
