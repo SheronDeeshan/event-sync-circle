@@ -1,58 +1,52 @@
-import { Bell, UserPlus, Check, Star } from "lucide-react";
+import { useState } from "react";
+import { Bell, UserPlus, Check, Star, DollarSign, MessageCircle, Shield, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useApp } from "@/contexts/AppContext";
+import type { Notification } from "@/lib/mock-data";
 
-const notifications = [
-  {
-    id: "1",
-    type: "match",
-    icon: Star,
-    title: "New event matches your interests!",
-    description: "Sunrise Mountain Hike — matches Hiking, Photography",
-    time: "2 min ago",
-    unread: true,
-  },
-  {
-    id: "2",
-    type: "invite",
-    icon: UserPlus,
-    title: "Maya invited you",
-    description: "Weekend Beach Getaway — Apr 18",
-    time: "1 hour ago",
-    unread: true,
-  },
-  {
-    id: "3",
-    type: "accepted",
-    icon: Check,
-    title: "You've been accepted!",
-    description: "Art & Wine Evening — you're in!",
-    time: "3 hours ago",
-    unread: false,
-  },
-  {
-    id: "4",
-    type: "match",
-    icon: Star,
-    title: "Trending near you",
-    description: "Secret Rooftop Jam Session — 20 spots left",
-    time: "Yesterday",
-    unread: false,
-  },
-];
+interface NotificationsScreenProps {
+  onEventClick?: (eventId: string) => void;
+}
 
-const NotificationsScreen = () => {
+const iconMap: Record<string, any> = {
+  match: Star,
+  invite: UserPlus,
+  accepted: Check,
+  join_request: UserPlus,
+  expense: DollarSign,
+  chat: MessageCircle,
+  anonymous_invite: Shield,
+};
+
+const NotificationsScreen = ({ onEventClick }: NotificationsScreenProps) => {
+  const { notifications, markNotificationRead } = useApp();
+
+  const unreadCount = notifications.filter((n) => n.unread).length;
+
   return (
     <div className="pb-24 pt-2 animate-fade-in">
-      <div className="px-5 mb-5">
-        <h1 className="text-xl font-bold text-foreground">Notifications</h1>
+      <div className="px-5 mb-5 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold text-foreground">Notifications</h1>
+          {unreadCount > 0 && (
+            <p className="text-xs text-muted-foreground mt-0.5">{unreadCount} unread</p>
+          )}
+        </div>
       </div>
 
       <div className="px-5 space-y-2">
         {notifications.map((n) => {
-          const Icon = n.icon;
+          const Icon = iconMap[n.type] || Bell;
           return (
-            <div
+            <button
               key={n.id}
-              className={`flex items-start gap-3 p-3.5 rounded-xl transition-colors ${
+              onClick={() => {
+                markNotificationRead(n.id);
+                if (n.eventId && onEventClick) {
+                  onEventClick(n.eventId);
+                }
+              }}
+              className={`w-full text-left flex items-start gap-3 p-3.5 rounded-xl transition-colors ${
                 n.unread ? "bg-primary/5" : "bg-card"
               }`}
             >
@@ -66,12 +60,26 @@ const NotificationsScreen = () => {
                   {n.title}
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">{n.description}</p>
-                <p className="text-[11px] text-muted-foreground mt-1">{n.time}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="text-[11px] text-muted-foreground">{n.time}</p>
+                  {n.actionRequired && (
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/15 text-primary font-medium">
+                      Action needed
+                    </span>
+                  )}
+                </div>
               </div>
               {n.unread && <div className="w-2 h-2 rounded-full bg-primary mt-2 flex-shrink-0" />}
-            </div>
+              {n.eventId && <ChevronRight size={14} className="text-muted-foreground mt-2" />}
+            </button>
           );
         })}
+        {notifications.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground">
+            <Bell size={32} className="mx-auto mb-2 opacity-40" />
+            <p className="text-sm">No notifications yet</p>
+          </div>
+        )}
       </div>
     </div>
   );

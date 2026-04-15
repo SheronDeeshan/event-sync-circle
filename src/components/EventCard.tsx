@@ -1,4 +1,4 @@
-import { MapPin, Calendar, Users, ChevronRight } from "lucide-react";
+import { MapPin, Calendar, Users, ChevronRight, CalendarRange } from "lucide-react";
 import type { EventItem } from "@/lib/mock-data";
 import eventHike from "@/assets/event-hike.jpg";
 import eventBeach from "@/assets/event-beach.jpg";
@@ -22,6 +22,7 @@ const EventCard = ({ event, onClick }: EventCardProps) => {
   const dateObj = new Date(event.date + "T00:00:00");
   const month = dateObj.toLocaleString("en", { month: "short" }).toUpperCase();
   const day = dateObj.getDate();
+  const isMultiDay = !!event.endDate;
 
   return (
     <button
@@ -33,12 +34,24 @@ const EventCard = ({ event, onClick }: EventCardProps) => {
         <div className="absolute top-3 left-3 bg-card/90 backdrop-blur-sm rounded-xl px-3 py-1.5 text-center">
           <div className="text-[10px] font-bold text-primary leading-none">{month}</div>
           <div className="text-lg font-bold text-card-foreground leading-tight">{day}</div>
+          {isMultiDay && (
+            <div className="text-[9px] text-muted-foreground font-medium">
+              +{Math.ceil((new Date(event.endDate! + "T00:00:00").getTime() - dateObj.getTime()) / 86400000)}d
+            </div>
+          )}
         </div>
-        {event.privacy === "anonymous" && (
-          <div className="absolute top-3 right-3 bg-accent/90 backdrop-blur-sm rounded-full px-3 py-1 text-[11px] font-medium text-accent-foreground">
-            Anonymous
-          </div>
-        )}
+        <div className="absolute top-3 right-3 flex gap-1.5">
+          {event.privacy === "anonymous" && (
+            <div className="bg-accent/90 backdrop-blur-sm rounded-full px-3 py-1 text-[11px] font-medium text-accent-foreground">
+              Anonymous
+            </div>
+          )}
+          {event.status === "active" && (
+            <div className="bg-[hsl(var(--success))]/90 backdrop-blur-sm rounded-full px-2.5 py-1 text-[11px] font-medium text-[hsl(var(--success-foreground))]">
+              Active
+            </div>
+          )}
+        </div>
       </div>
       <div className="p-4">
         <h3 className="font-semibold text-card-foreground text-base mb-1.5">{event.title}</h3>
@@ -49,7 +62,7 @@ const EventCard = ({ event, onClick }: EventCardProps) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
-              <Calendar size={12} />
+              {isMultiDay ? <CalendarRange size={12} /> : <Calendar size={12} />}
               {event.time}
             </span>
             <span className="flex items-center gap-1">
