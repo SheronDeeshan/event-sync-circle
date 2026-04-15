@@ -2,6 +2,7 @@ import { useState } from "react";
 import { AppProvider, useApp } from "@/contexts/AppContext";
 import AuthScreen from "@/components/AuthScreen";
 import HomeFeed from "@/components/HomeFeed";
+import DiscoverScreen from "@/components/DiscoverScreen";
 import EventDetail from "@/components/EventDetail";
 import CollaborationSpace from "@/components/CollaborationSpace";
 import CreateEvent from "@/components/CreateEvent";
@@ -12,7 +13,7 @@ import BottomNav from "@/components/BottomNav";
 type Screen = "home" | "discover" | "create" | "notifications" | "profile" | "event-detail" | "collaboration";
 
 const AppContent = () => {
-  const { isAuthenticated, events } = useApp();
+  const { isAuthenticated, events, notifications } = useApp();
   const [screen, setScreen] = useState<Screen>("home");
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
@@ -21,6 +22,12 @@ const AppContent = () => {
   }
 
   const selectedEvent = events.find((e) => e.id === selectedEventId);
+  const unreadCount = notifications.filter((n) => n.unread).length;
+
+  const navigateToEvent = (eventId: string) => {
+    setSelectedEventId(eventId);
+    setScreen("event-detail");
+  };
 
   if (screen === "collaboration" && selectedEvent) {
     return (
@@ -39,7 +46,7 @@ const AppContent = () => {
           onBack={() => { setScreen("home"); setSelectedEventId(null); }}
           onJoinSpace={() => setScreen("collaboration")}
         />
-        <BottomNav active="" onNavigate={(tab) => { setScreen(tab as Screen); setSelectedEventId(null); }} />
+        <BottomNav active="" onNavigate={(tab) => { setScreen(tab as Screen); setSelectedEventId(null); }} unreadNotifications={unreadCount} />
       </>
     );
   }
@@ -48,7 +55,7 @@ const AppContent = () => {
     return (
       <>
         <CreateEvent onBack={() => setScreen("home")} onCreated={() => setScreen("home")} />
-        <BottomNav active="create" onNavigate={(tab) => setScreen(tab as Screen)} />
+        <BottomNav active="create" onNavigate={(tab) => setScreen(tab as Screen)} unreadNotifications={unreadCount} />
       </>
     );
   }
@@ -57,15 +64,17 @@ const AppContent = () => {
     <>
       <div className="max-w-lg mx-auto">
         {screen === "home" && (
-          <HomeFeed onEventClick={(id) => { setSelectedEventId(id); setScreen("event-detail"); }} />
+          <HomeFeed onEventClick={navigateToEvent} />
         )}
         {screen === "discover" && (
-          <HomeFeed onEventClick={(id) => { setSelectedEventId(id); setScreen("event-detail"); }} />
+          <DiscoverScreen onEventClick={navigateToEvent} />
         )}
-        {screen === "notifications" && <NotificationsScreen />}
+        {screen === "notifications" && (
+          <NotificationsScreen onEventClick={navigateToEvent} />
+        )}
         {screen === "profile" && <ProfileScreen />}
       </div>
-      <BottomNav active={screen} onNavigate={(tab) => setScreen(tab as Screen)} />
+      <BottomNav active={screen} onNavigate={(tab) => setScreen(tab as Screen)} unreadNotifications={unreadCount} />
     </>
   );
 };
