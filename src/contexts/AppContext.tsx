@@ -464,6 +464,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     <AppContext.Provider value={{
       user, isAuthenticated: !!session, loading,
       events, circleGroups, notifications, selectedInterests, messages, expenses,
+      profiles: Object.values(profilesCache),
       login, signup, logout, setSelectedInterests,
       joinEvent, requestJoinEvent, handleJoinRequest, createEvent,
       addCircleGroup, removeCircleGroup, updateUserInterests,
