@@ -3,7 +3,7 @@ import { ArrowLeft, Camera, Plus, X, Upload, Users, UserPlus, CalendarRange } fr
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/contexts/AppContext";
-import { INTEREST_TAGS, mockUsers } from "@/lib/mock-data";
+import { INTEREST_TAGS } from "@/lib/mock-data";
 
 interface CreateEventProps {
   onBack: () => void;
