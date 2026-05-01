@@ -60,8 +60,8 @@ const ANONYMOUS_USER: User = {
 
 const reqStatusFromDb = (s: string): JoinRequestStatus =>
   s === "approved" ? "approved" : s === "declined" ? "rejected" : "pending";
-const reqStatusToDb = (s: JoinRequestStatus): string =>
-  s === "rejected" ? "declined" : s;
+const reqStatusToDb = (s: JoinRequestStatus): "approved" | "declined" | "pending" =>
+  s === "rejected" ? "declined" : (s as "approved" | "pending");
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -387,7 +387,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       );
       await supabase.from("notifications").insert(
         eventData.anonymousInvites.map((invitee_id) => ({
-          user_id: invitee_id, type: "anonymous_invite",
+          user_id: invitee_id, type: "anonymous_invite" as const,
           title: "Someone thinks you'd like this!",
           body: `You've been anonymously suggested for ${created.title}`,
           event_id: created.id,
