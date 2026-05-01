@@ -22,6 +22,7 @@ interface AppContextType {
   selectedInterests: string[];
   messages: Record<string, Message[]>;
   expenses: Record<string, Expense[]>;
+  profiles: User[];
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
