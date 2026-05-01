@@ -14,16 +14,418 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      anonymous_invites: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          invitee_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          invitee_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          invitee_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anonymous_invites_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      circle_groups: {
+        Row: {
+          created_at: string
+          created_by: string
+          emoji: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          emoji?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          emoji?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      circle_members: {
+        Row: {
+          added_at: string
+          circle_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          added_at?: string
+          circle_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          added_at?: string
+          circle_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "circle_members_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: false
+            referencedRelation: "circle_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_participants: {
+        Row: {
+          event_id: string
+          id: string
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          event_id: string
+          id?: string
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          event_id?: string
+          id?: string
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_participants_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          circle_group_ids: string[]
+          cover_image: string | null
+          created_at: string
+          description: string
+          end_date: string | null
+          id: string
+          imported_from: string | null
+          location: string
+          organizer_id: string
+          participant_limit: number
+          privacy: Database["public"]["Enums"]["event_privacy"]
+          start_date: string
+          start_time: string | null
+          status: Database["public"]["Enums"]["event_status"]
+          tags: string[]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          circle_group_ids?: string[]
+          cover_image?: string | null
+          created_at?: string
+          description?: string
+          end_date?: string | null
+          id?: string
+          imported_from?: string | null
+          location?: string
+          organizer_id: string
+          participant_limit?: number
+          privacy?: Database["public"]["Enums"]["event_privacy"]
+          start_date: string
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["event_status"]
+          tags?: string[]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          circle_group_ids?: string[]
+          cover_image?: string | null
+          created_at?: string
+          description?: string
+          end_date?: string | null
+          id?: string
+          imported_from?: string | null
+          location?: string
+          organizer_id?: string
+          participant_limit?: number
+          privacy?: Database["public"]["Enums"]["event_privacy"]
+          start_date?: string
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["event_status"]
+          tags?: string[]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      expenses: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string
+          event_id: string
+          id: string
+          payer_id: string
+          split_with: string[]
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description: string
+          event_id: string
+          id?: string
+          payer_id: string
+          split_with?: string[]
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string
+          event_id?: string
+          id?: string
+          payer_id?: string
+          split_with?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "expenses_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      join_requests: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          message: string | null
+          status: Database["public"]["Enums"]["join_request_status"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          message?: string | null
+          status?: Database["public"]["Enums"]["join_request_status"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          message?: string | null
+          status?: Database["public"]["Enums"]["join_request_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "join_requests_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          event_id: string
+          id: string
+          message_type: string
+          sender_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          event_id: string
+          id?: string
+          message_type?: string
+          sender_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          message_type?: string
+          sender_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          event_id: string | null
+          id: string
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          unread: boolean
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          title: string
+          type: Database["public"]["Enums"]["notification_type"]
+          unread?: boolean
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          title?: string
+          type?: Database["public"]["Enums"]["notification_type"]
+          unread?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          created_at: string
+          email: string | null
+          id: string
+          interests: string[]
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          email?: string | null
+          id: string
+          interests?: string[]
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          interests?: string[]
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_view_event: {
+        Args: { _event_id: string; _user_id: string }
+        Returns: boolean
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_circle_member: {
+        Args: { _circle_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_event_participant: {
+        Args: { _event_id: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      event_privacy: "public" | "private" | "anonymous"
+      event_status: "draft" | "open" | "active" | "completed" | "cancelled"
+      join_request_status: "pending" | "approved" | "declined"
+      notification_type:
+        | "join_request"
+        | "request_approved"
+        | "request_declined"
+        | "event_invite"
+        | "new_message"
+        | "event_update"
+        | "anonymous_invite"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +552,20 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      event_privacy: ["public", "private", "anonymous"],
+      event_status: ["draft", "open", "active", "completed", "cancelled"],
+      join_request_status: ["pending", "approved", "declined"],
+      notification_type: [
+        "join_request",
+        "request_approved",
+        "request_declined",
+        "event_invite",
+        "new_message",
+        "event_update",
+        "anonymous_invite",
+      ],
+    },
   },
 } as const
