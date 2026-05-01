@@ -17,7 +17,7 @@ const IMPORT_SOURCES = [
 ];
 
 const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
-  const { user, circleGroups, createEvent } = useApp();
+  const { user, circleGroups, createEvent, profiles } = useApp();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
@@ -75,7 +75,7 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
     // Placeholder: in real app, would open OAuth flow / import UI
   };
 
-  const invitableUsers = mockUsers.filter((u) => u.id !== user?.id && !u.isAnonymous);
+  const invitableUsers = profiles.filter((u) => u.id !== user?.id && !u.isAnonymous);
 
   return (
     <div className="pb-24 animate-fade-in">
