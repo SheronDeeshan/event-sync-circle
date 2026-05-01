@@ -9,16 +9,22 @@ const AuthScreen = () => {
   const { login, signup } = useApp();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [name, setName] = useState("");
-  const [email, setEmail] = useState("alex@circle.app");
-  const [password, setPassword] = useState("password");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (mode === "login") {
-      login(email, password);
-    } else {
-      signup(name, email, password);
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      if (mode === "login") await login(email, password);
+      else await signup(name || email.split("@")[0], email, password);
+    } catch {
+      // toasts shown in context
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -64,8 +70,8 @@ const AuthScreen = () => {
             </button>
           </div>
 
-          <Button type="submit" variant="hero" className="w-full h-12 rounded-xl text-base font-semibold">
-            {mode === "login" ? "Log In" : "Create Account"}
+          <Button type="submit" variant="hero" disabled={submitting} className="w-full h-12 rounded-xl text-base font-semibold">
+            {submitting ? "Please wait…" : mode === "login" ? "Log In" : "Create Account"}
           </Button>
         </form>
 
