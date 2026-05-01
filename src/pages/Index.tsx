@@ -13,10 +13,13 @@ import BottomNav from "@/components/BottomNav";
 type Screen = "home" | "discover" | "create" | "notifications" | "profile" | "event-detail" | "collaboration";
 
 const AppContent = () => {
-  const { isAuthenticated, events, notifications } = useApp();
+  const { isAuthenticated, loading, events, notifications } = useApp();
   const [screen, setScreen] = useState<Screen>("home");
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
 
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center text-muted-foreground text-sm">Loading…</div>;
+  }
   if (!isAuthenticated) {
     return <AuthScreen />;
   }

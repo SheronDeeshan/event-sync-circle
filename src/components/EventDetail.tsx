@@ -2,7 +2,7 @@ import { useState } from "react";
 import { ArrowLeft, MapPin, Calendar, Users, Clock, Shield, Share2, CalendarRange, Check, X, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/contexts/AppContext";
-import { mockCircleGroups, mockUsers, type EventItem } from "@/lib/mock-data";
+import { type EventItem } from "@/lib/mock-data";
 import eventHike from "@/assets/event-hike.jpg";
 import eventBeach from "@/assets/event-beach.jpg";
 import eventMusic from "@/assets/event-music.jpg";
@@ -22,7 +22,7 @@ interface EventDetailProps {
 }
 
 const EventDetail = ({ event, onBack, onJoinSpace }: EventDetailProps) => {
-  const { user, joinEvent, requestJoinEvent, handleJoinRequest } = useApp();
+  const { user, joinEvent, requestJoinEvent, handleJoinRequest, circleGroups, profiles } = useApp();
   const image = eventImages[event.id] || eventHike;
   const isJoined = user ? event.participants.some((p) => p.id === user.id) : false;
   const isFull = event.participants.length >= event.participantLimit;
@@ -40,7 +40,7 @@ const EventDetail = ({ event, onBack, onJoinSpace }: EventDetailProps) => {
   const endDateStr = event.endDate
     ? new Date(event.endDate + "T00:00:00").toLocaleDateString("en", { month: "long", day: "numeric" })
     : null;
-  const eventCircles = mockCircleGroups.filter((g) => event.circleGroups.includes(g.id));
+  const eventCircles = circleGroups.filter((g) => event.circleGroups.includes(g.id));
 
   const statusColors: Record<string, string> = {
     draft: "bg-muted text-muted-foreground",
@@ -159,7 +159,7 @@ const EventDetail = ({ event, onBack, onJoinSpace }: EventDetailProps) => {
             </h2>
             <div className="space-y-2">
               {pendingRequests.map((req) => {
-                const reqUser = mockUsers.find((u) => u.id === req.userId);
+                const reqUser = profiles.find((u) => u.id === req.userId);
                 if (!reqUser) return null;
                 return (
                   <div key={req.id} className="flex items-center gap-3 p-3 rounded-xl bg-card shadow-card">
