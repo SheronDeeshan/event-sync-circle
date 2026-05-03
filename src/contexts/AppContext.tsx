@@ -37,6 +37,11 @@ interface AppContextType {
   sendMessage: (eventId: string, content: string) => Promise<void>;
   addExpense: (eventId: string, expense: Omit<Expense, "id">) => Promise<void>;
   markNotificationRead: (id: string) => Promise<void>;
+  updateUserProfile: (updates: { name?: string; bio?: string; avatar?: string }) => Promise<void>;
+  uploadAvatar: (file: File) => Promise<string | null>;
+  addCircleMember: (circleId: string, userId: string) => Promise<void>;
+  removeCircleMember: (circleId: string, userId: string) => Promise<void>;
+  createCircleInvite: (circleId: string, channel: { email?: string; phone?: string }) => Promise<string | null>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -48,6 +53,7 @@ const profileToUser = (p: any): User => ({
   avatar: p.avatar_url || "",
   interests: p.interests || [],
   isAnonymous: false,
+  bio: p.bio || "",
 });
 
 const ANONYMOUS_USER: User = {
@@ -103,6 +109,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         const u = profileToUser(data);
         setUser(u);
         setProfilesCache((c) => ({ ...c, [u.id]: u }));
+      }
+      // Accept circle invite if present in URL
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get("invite");
+      if (token) {
+        const { data: inv } = await supabase.from("circle_invites")
+          .select("*").eq("token", token).maybeSingle();
+        if (inv && !inv.accepted_at) {
+          await supabase.from("circle_members").insert({ circle_id: inv.circle_id, user_id: session.user.id });
+          await supabase.from("circle_invites").update({
+            accepted_at: new Date().toISOString(), accepted_by: session.user.id,
+          }).eq("id", inv.id);
+          toast.success("Joined circle!");
+        }
+        params.delete("invite");
+        const newUrl = window.location.pathname + (params.toString() ? `?${params}` : "");
+        window.history.replaceState({}, "", newUrl);
       }
     })();
   }, [session?.user?.id]);
@@ -460,6 +483,58 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     await supabase.from("notifications").update({ unread: false }).eq("id", id);
   };
 
+  // ====== PROFILE EDIT ======
+  const updateUserProfile = async (updates: { name?: string; bio?: string; avatar?: string }) => {
+    if (!user) return;
+    const dbPatch: any = {};
+    if (updates.name !== undefined) dbPatch.name = updates.name;
+    if (updates.bio !== undefined) dbPatch.bio = updates.bio;
+    if (updates.avatar !== undefined) dbPatch.avatar_url = updates.avatar;
+    const { error } = await supabase.from("profiles").update(dbPatch).eq("id", user.id);
+    if (error) { toast.error(error.message); return; }
+    setUser({
+      ...user,
+      name: updates.name ?? user.name,
+      bio: updates.bio ?? user.bio,
+      avatar: updates.avatar ?? user.avatar,
+    });
+    toast.success("Profile updated");
+  };
+
+  const uploadAvatar = async (file: File): Promise<string | null> => {
+    if (!user) return null;
+    const ext = file.name.split(".").pop() || "png";
+    const path = `${user.id}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (error) { toast.error(error.message); return null; }
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    return data.publicUrl;
+  };
+
+  const addCircleMember = async (circleId: string, userId: string) => {
+    const { error } = await supabase.from("circle_members").insert({ circle_id: circleId, user_id: userId });
+    if (error) { toast.error(error.message); return; }
+    toast.success("Member added");
+    await loadAll();
+  };
+
+  const removeCircleMember = async (circleId: string, userId: string) => {
+    const { error } = await supabase.from("circle_members").delete()
+      .eq("circle_id", circleId).eq("user_id", userId);
+    if (error) { toast.error(error.message); return; }
+    await loadAll();
+  };
+
+  const createCircleInvite = async (circleId: string, channel: { email?: string; phone?: string }) => {
+    if (!user) return null;
+    const { data, error } = await supabase.from("circle_invites").insert({
+      circle_id: circleId, invited_by: user.id,
+      email: channel.email || null, phone: channel.phone || null,
+    }).select().single();
+    if (error || !data) { toast.error(error?.message || "Failed"); return null; }
+    return `${window.location.origin}/?invite=${data.token}`;
+  };
+
   return (
     <AppContext.Provider value={{
       user, isAuthenticated: !!session, loading,
@@ -469,6 +544,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       joinEvent, requestJoinEvent, handleJoinRequest, createEvent,
       addCircleGroup, removeCircleGroup, updateUserInterests,
       sendMessage, addExpense, markNotificationRead,
+      updateUserProfile, uploadAvatar,
+      addCircleMember, removeCircleMember, createCircleInvite,
     }}>
       {children}
     </AppContext.Provider>

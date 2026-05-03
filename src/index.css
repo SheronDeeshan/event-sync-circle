@@ -15,16 +15,16 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 25% 10%;
 
-    --primary: 12 90% 58%;
+    --primary: 285 75% 55%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 15% 93%;
-    --secondary-foreground: 220 25% 10%;
+    --secondary: 285 30% 95%;
+    --secondary-foreground: 285 40% 18%;
 
-    --muted: 220 15% 93%;
-    --muted-foreground: 220 10% 50%;
+    --muted: 285 20% 94%;
+    --muted-foreground: 285 10% 45%;
 
-    --accent: 260 60% 58%;
+    --accent: 195 90% 50%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
@@ -32,7 +32,7 @@
 
     --border: 220 15% 90%;
     --input: 220 15% 90%;
-    --ring: 12 90% 58%;
+    --ring: 285 75% 55%;
 
     --radius: 1rem;
 
@@ -51,9 +51,10 @@
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
 
-    --gradient-primary: linear-gradient(135deg, hsl(12, 90%, 58%), hsl(350, 80%, 55%));
-    --gradient-accent: linear-gradient(135deg, hsl(260, 60%, 58%), hsl(290, 70%, 55%));
-    --gradient-warm: linear-gradient(135deg, hsl(12, 90%, 58%), hsl(38, 92%, 50%));
+    --gradient-primary: linear-gradient(135deg, hsl(330, 85%, 60%), hsl(285, 75%, 55%) 40%, hsl(220, 85%, 60%));
+    --gradient-accent: linear-gradient(135deg, hsl(195, 90%, 55%), hsl(145, 70%, 50%));
+    --gradient-warm: linear-gradient(135deg, hsl(20, 95%, 60%), hsl(50, 95%, 55%));
+    --gradient-rainbow: linear-gradient(135deg, hsl(330, 85%, 60%), hsl(20, 95%, 60%), hsl(50, 95%, 55%), hsl(145, 70%, 50%), hsl(195, 90%, 55%), hsl(285, 75%, 55%));
     --shadow-card: 0 2px 12px -2px hsl(220 25% 10% / 0.08);
     --shadow-elevated: 0 8px 30px -4px hsl(220 25% 10% / 0.12);
   }
@@ -68,7 +69,7 @@
     --popover: 224 22% 12%;
     --popover-foreground: 220 15% 92%;
 
-    --primary: 12 90% 58%;
+    --primary: 285 75% 60%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 224 18% 18%;
@@ -77,7 +78,7 @@
     --muted: 224 18% 18%;
     --muted-foreground: 220 10% 55%;
 
-    --accent: 260 60% 58%;
+    --accent: 195 90% 55%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 62.8% 30.6%;
@@ -85,7 +86,7 @@
 
     --border: 224 18% 20%;
     --input: 224 18% 20%;
-    --ring: 12 90% 58%;
+    --ring: 285 75% 60%;
 
     --sidebar-background: 224 25% 8%;
     --sidebar-foreground: 220 15% 92%;
@@ -121,6 +122,15 @@
   }
   .gradient-warm {
     background: var(--gradient-warm);
+  }
+  .gradient-rainbow {
+    background: var(--gradient-rainbow);
+  }
+  .text-gradient-rainbow {
+    background: var(--gradient-rainbow);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
   .shadow-card {
     box-shadow: var(--shadow-card);
