@@ -67,6 +67,50 @@ export type Database = {
         }
         Relationships: []
       }
+      circle_invites: {
+        Row: {
+          accepted_at: string | null
+          accepted_by: string | null
+          circle_id: string
+          created_at: string
+          email: string | null
+          id: string
+          invited_by: string
+          phone: string | null
+          token: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          circle_id: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          invited_by: string
+          phone?: string | null
+          token?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_by?: string | null
+          circle_id?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          invited_by?: string
+          phone?: string | null
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "circle_invites_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: false
+            referencedRelation: "circle_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       circle_members: {
         Row: {
           added_at: string
