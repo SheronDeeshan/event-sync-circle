@@ -110,6 +110,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setUser(u);
         setProfilesCache((c) => ({ ...c, [u.id]: u }));
       }
+      // Accept circle invite if present in URL
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get("invite");
+      if (token) {
+        const { data: inv } = await supabase.from("circle_invites")
+          .select("*").eq("token", token).maybeSingle();
+        if (inv && !inv.accepted_at) {
+          await supabase.from("circle_members").insert({ circle_id: inv.circle_id, user_id: session.user.id });
+          await supabase.from("circle_invites").update({
+            accepted_at: new Date().toISOString(), accepted_by: session.user.id,
+          }).eq("id", inv.id);
+          toast.success("Joined circle!");
+        }
+        params.delete("invite");
+        const newUrl = window.location.pathname + (params.toString() ? `?${params}` : "");
+        window.history.replaceState({}, "", newUrl);
+      }
     })();
   }, [session?.user?.id]);
 
