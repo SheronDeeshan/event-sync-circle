@@ -37,6 +37,11 @@ interface AppContextType {
   sendMessage: (eventId: string, content: string) => Promise<void>;
   addExpense: (eventId: string, expense: Omit<Expense, "id">) => Promise<void>;
   markNotificationRead: (id: string) => Promise<void>;
+  updateUserProfile: (updates: { name?: string; bio?: string; avatar?: string }) => Promise<void>;
+  uploadAvatar: (file: File) => Promise<string | null>;
+  addCircleMember: (circleId: string, userId: string) => Promise<void>;
+  removeCircleMember: (circleId: string, userId: string) => Promise<void>;
+  createCircleInvite: (circleId: string, channel: { email?: string; phone?: string }) => Promise<string | null>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -48,6 +53,7 @@ const profileToUser = (p: any): User => ({
   avatar: p.avatar_url || "",
   interests: p.interests || [],
   isAnonymous: false,
+  bio: p.bio || "",
 });
 
 const ANONYMOUS_USER: User = {
