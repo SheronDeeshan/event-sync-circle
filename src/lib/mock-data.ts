@@ -5,6 +5,7 @@ export interface User {
   avatar: string;
   interests: string[];
   isAnonymous: boolean;
+  bio?: string;
 }
 
 export interface CircleGroup {
