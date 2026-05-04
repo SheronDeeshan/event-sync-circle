@@ -140,6 +140,36 @@ export type Database = {
           },
         ]
       }
+      event_alerts: {
+        Row: {
+          body: string | null
+          created_at: string
+          created_by: string
+          event_id: string
+          id: string
+          kind: string
+          title: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          created_by: string
+          event_id: string
+          id?: string
+          kind: string
+          title: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          created_by?: string
+          event_id?: string
+          id?: string
+          kind?: string
+          title?: string
+        }
+        Relationships: []
+      }
       event_participants: {
         Row: {
           event_id: string
@@ -169,6 +199,33 @@ export type Database = {
           },
         ]
       }
+      event_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          event_id: string
+          id: string
+          image_url: string
+          uploaded_by: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          image_url: string
+          uploaded_by: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          image_url?: string
+          uploaded_by?: string
+        }
+        Relationships: []
+      }
       events: {
         Row: {
           circle_group_ids: string[]
@@ -178,16 +235,21 @@ export type Database = {
           end_date: string | null
           id: string
           imported_from: string | null
+          latitude: number | null
           location: string
+          longitude: number | null
           organizer_id: string
           participant_limit: number
           privacy: Database["public"]["Enums"]["event_privacy"]
+          private_rule: string
           start_date: string
           start_time: string | null
           status: Database["public"]["Enums"]["event_status"]
           tags: string[]
           title: string
+          transport_info: string | null
           updated_at: string
+          weather_alerts_enabled: boolean
         }
         Insert: {
           circle_group_ids?: string[]
@@ -197,16 +259,21 @@ export type Database = {
           end_date?: string | null
           id?: string
           imported_from?: string | null
+          latitude?: number | null
           location?: string
+          longitude?: number | null
           organizer_id: string
           participant_limit?: number
           privacy?: Database["public"]["Enums"]["event_privacy"]
+          private_rule?: string
           start_date: string
           start_time?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           tags?: string[]
           title: string
+          transport_info?: string | null
           updated_at?: string
+          weather_alerts_enabled?: boolean
         }
         Update: {
           circle_group_ids?: string[]
@@ -216,16 +283,21 @@ export type Database = {
           end_date?: string | null
           id?: string
           imported_from?: string | null
+          latitude?: number | null
           location?: string
+          longitude?: number | null
           organizer_id?: string
           participant_limit?: number
           privacy?: Database["public"]["Enums"]["event_privacy"]
+          private_rule?: string
           start_date?: string
           start_time?: string | null
           status?: Database["public"]["Enums"]["event_status"]
           tags?: string[]
           title?: string
+          transport_info?: string | null
           updated_at?: string
+          weather_alerts_enabled?: boolean
         }
         Relationships: []
       }
@@ -301,6 +373,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      message_reactions: {
+        Row: {
+          created_at: string
+          emoji: string
+          event_id: string
+          id: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          emoji: string
+          event_id: string
+          id?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          emoji?: string
+          event_id?: string
+          id?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       messages: {
         Row: {
@@ -378,6 +477,30 @@ export type Database = {
           },
         ]
       }
+      pinned_messages: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          message_id: string
+          pinned_by: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          message_id: string
+          pinned_by: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          message_id?: string
+          pinned_by?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -408,6 +531,33 @@ export type Database = {
           interests?: string[]
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      stories: {
+        Row: {
+          caption: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          image_url: string | null
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          image_url?: string | null
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          image_url?: string | null
+          user_id?: string
         }
         Relationships: []
       }
@@ -456,6 +606,7 @@ export type Database = {
         Args: { _event_id: string; _user_id: string }
         Returns: boolean
       }
+      shares_circle: { Args: { _a: string; _b: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "user"
