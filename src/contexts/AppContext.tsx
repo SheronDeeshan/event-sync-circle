@@ -537,12 +537,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // ====== CHAT / EXPENSES ======
-  const sendMessage = async (eventId: string, content: string) => {
-    if (!user) return;
-    const { error } = await supabase.from("messages").insert({
-      event_id: eventId, sender_id: user.id, content, message_type: "user",
-    });
-    if (error) toast.error(error.message);
   };
 
   const addExpense = async (eventId: string, expense: Omit<Expense, "id">) => {
@@ -720,16 +714,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
     toast.success("Profile updated");
   };
-    const { error } = await supabase.from("profiles").update(dbPatch).eq("id", user.id);
-    if (error) { toast.error(error.message); return; }
-    setUser({
-      ...user,
-      name: updates.name ?? user.name,
-      bio: updates.bio ?? user.bio,
-      avatar: updates.avatar ?? user.avatar,
-    });
-    toast.success("Profile updated");
-  };
+
 
   const uploadAvatar = async (file: File): Promise<string | null> => {
     if (!user) return null;
@@ -770,12 +755,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       user, isAuthenticated: !!session, loading,
       events, circleGroups, notifications, selectedInterests, messages, expenses,
       profiles: Object.values(profilesCache),
+      stories, eventAlerts, eventPhotos, reactions, pinnedMessageIds,
       login, signup, logout, setSelectedInterests,
       joinEvent, requestJoinEvent, handleJoinRequest, createEvent,
       addCircleGroup, removeCircleGroup, updateUserInterests,
-      sendMessage, addExpense, markNotificationRead,
+      sendMessage, uploadChatImage, toggleReaction, togglePin,
+      addExpense, markNotificationRead,
       updateUserProfile, uploadAvatar,
       addCircleMember, removeCircleMember, createCircleInvite,
+      createStory, createEventAlert, uploadEventPhoto,
     }}>
       {children}
     </AppContext.Provider>
