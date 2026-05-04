@@ -96,6 +96,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [expenses, setExpenses] = useState<Record<string, Expense[]>>({});
   const [profilesCache, setProfilesCache] = useState<Record<string, User>>({});
+  const [stories, setStories] = useState<Story[]>([]);
+  const [eventAlerts, setEventAlerts] = useState<Record<string, EventAlert[]>>({});
+  const [eventPhotos, setEventPhotos] = useState<Record<string, EventPhoto[]>>({});
+  const [reactions, setReactions] = useState<Record<string, Record<string, { emoji: string; userId: string }[]>>>({});
+  const [pinnedMessageIds, setPinnedMessageIds] = useState<Record<string, string[]>>({});
 
   // ====== AUTH ======
   useEffect(() => {
