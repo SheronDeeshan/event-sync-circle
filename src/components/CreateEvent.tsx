@@ -163,11 +163,11 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
 
           <div>
             <label className="text-sm font-medium text-foreground mb-1.5 block">Location</label>
-            <Input
-              placeholder="Where is it happening?"
+            <MapPicker
               value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              className="h-12 rounded-xl bg-secondary border-0 text-foreground placeholder:text-muted-foreground"
+              lat={lat}
+              lng={lng}
+              onChange={(loc, la, lo) => { setLocation(loc); setLat(la); setLng(lo); }}
             />
           </div>
 
