@@ -41,7 +41,7 @@ const AuthScreen = () => {
         <div className="flex flex-col items-center mb-10">
           <img src={circleLogo} alt="Circle" className="w-24 h-24 mb-4" />
           <h1 className="text-3xl font-bold text-gradient-rainbow">Circle</h1>
-          <p className="text-muted-foreground mt-1">Find your people</p>
+          <p className="text-muted-foreground mt-1">Your Circle</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
