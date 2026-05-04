@@ -10,6 +10,10 @@ import {
   type Message,
   type Expense,
   type JoinRequestStatus,
+  type Story,
+  type EventAlert,
+  type EventPhoto,
+  type PrivateRule,
 } from "@/lib/mock-data";
 
 interface AppContextType {
@@ -23,6 +27,11 @@ interface AppContextType {
   messages: Record<string, Message[]>;
   expenses: Record<string, Expense[]>;
   profiles: User[];
+  stories: Story[];
+  eventAlerts: Record<string, EventAlert[]>;
+  eventPhotos: Record<string, EventPhoto[]>;
+  reactions: Record<string, Record<string, { emoji: string; userId: string }[]>>; // eventId -> messageId -> []
+  pinnedMessageIds: Record<string, string[]>;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -34,7 +43,10 @@ interface AppContextType {
   addCircleGroup: (name: string, emoji: string) => Promise<void>;
   removeCircleGroup: (id: string) => Promise<void>;
   updateUserInterests: (interests: string[]) => Promise<void>;
-  sendMessage: (eventId: string, content: string) => Promise<void>;
+  sendMessage: (eventId: string, content: string, imageUrl?: string) => Promise<void>;
+  uploadChatImage: (eventId: string, file: File) => Promise<string | null>;
+  toggleReaction: (eventId: string, messageId: string, emoji: string) => Promise<void>;
+  togglePin: (eventId: string, messageId: string) => Promise<void>;
   addExpense: (eventId: string, expense: Omit<Expense, "id">) => Promise<void>;
   markNotificationRead: (id: string) => Promise<void>;
   updateUserProfile: (updates: { name?: string; bio?: string; avatar?: string }) => Promise<void>;
@@ -42,6 +54,9 @@ interface AppContextType {
   addCircleMember: (circleId: string, userId: string) => Promise<void>;
   removeCircleMember: (circleId: string, userId: string) => Promise<void>;
   createCircleInvite: (circleId: string, channel: { email?: string; phone?: string }) => Promise<string | null>;
+  createStory: (file: File, caption?: string) => Promise<void>;
+  createEventAlert: (eventId: string, kind: EventAlert["kind"], title: string, body?: string) => Promise<void>;
+  uploadEventPhoto: (eventId: string, file: File, caption?: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
