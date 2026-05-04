@@ -10,6 +10,10 @@ import {
   type Message,
   type Expense,
   type JoinRequestStatus,
+  type Story,
+  type EventAlert,
+  type EventPhoto,
+  type PrivateRule,
 } from "@/lib/mock-data";
 
 interface AppContextType {
@@ -23,6 +27,11 @@ interface AppContextType {
   messages: Record<string, Message[]>;
   expenses: Record<string, Expense[]>;
   profiles: User[];
+  stories: Story[];
+  eventAlerts: Record<string, EventAlert[]>;
+  eventPhotos: Record<string, EventPhoto[]>;
+  reactions: Record<string, Record<string, { emoji: string; userId: string }[]>>; // eventId -> messageId -> []
+  pinnedMessageIds: Record<string, string[]>;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -34,7 +43,10 @@ interface AppContextType {
   addCircleGroup: (name: string, emoji: string) => Promise<void>;
   removeCircleGroup: (id: string) => Promise<void>;
   updateUserInterests: (interests: string[]) => Promise<void>;
-  sendMessage: (eventId: string, content: string) => Promise<void>;
+  sendMessage: (eventId: string, content: string, imageUrl?: string) => Promise<void>;
+  uploadChatImage: (eventId: string, file: File) => Promise<string | null>;
+  toggleReaction: (eventId: string, messageId: string, emoji: string) => Promise<void>;
+  togglePin: (eventId: string, messageId: string) => Promise<void>;
   addExpense: (eventId: string, expense: Omit<Expense, "id">) => Promise<void>;
   markNotificationRead: (id: string) => Promise<void>;
   updateUserProfile: (updates: { name?: string; bio?: string; avatar?: string }) => Promise<void>;
@@ -42,6 +54,9 @@ interface AppContextType {
   addCircleMember: (circleId: string, userId: string) => Promise<void>;
   removeCircleMember: (circleId: string, userId: string) => Promise<void>;
   createCircleInvite: (circleId: string, channel: { email?: string; phone?: string }) => Promise<string | null>;
+  createStory: (file: File, caption?: string) => Promise<void>;
+  createEventAlert: (eventId: string, kind: EventAlert["kind"], title: string, body?: string) => Promise<void>;
+  uploadEventPhoto: (eventId: string, file: File, caption?: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -81,6 +96,11 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [expenses, setExpenses] = useState<Record<string, Expense[]>>({});
   const [profilesCache, setProfilesCache] = useState<Record<string, User>>({});
+  const [stories, setStories] = useState<Story[]>([]);
+  const [eventAlerts, setEventAlerts] = useState<Record<string, EventAlert[]>>({});
+  const [eventPhotos, setEventPhotos] = useState<Record<string, EventPhoto[]>>({});
+  const [reactions, setReactions] = useState<Record<string, Record<string, { emoji: string; userId: string }[]>>>({});
+  const [pinnedMessageIds, setPinnedMessageIds] = useState<Record<string, string[]>>({});
 
   // ====== AUTH ======
   useEffect(() => {
@@ -178,6 +198,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         title: e.title,
         description: e.description || "",
         location: e.location || "",
+        latitude: (e as any).latitude ?? null,
+        longitude: (e as any).longitude ?? null,
         date: e.start_date,
         endDate: e.end_date || undefined,
         time: e.start_time || "",
@@ -188,9 +210,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         participants: (partsByEvent[e.id] || []).map((id) => profiles[id]).filter(Boolean),
         organizer,
         privacy: e.privacy,
+        privateRule: ((e as any).private_rule || "any") as PrivateRule,
         status: e.status,
         anonymousInvites: anonByEvent[e.id] || [],
         importedFrom: e.imported_from as any,
+        transportInfo: (e as any).transport_info || undefined,
+        weatherAlertsEnabled: (e as any).weather_alerts_enabled || false,
         joinRequests: (reqsByEvent[e.id] || []).map((r) => ({
           id: r.id,
           userId: r.user_id,
@@ -202,6 +227,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       };
     });
     setEvents(builtEvents);
+
+    // Stories (last 24h)
+    const { data: storiesData } = await supabase
+      .from("stories").select("*").gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false });
+    setStories((storiesData || []).map((s: any) => {
+      const u = profiles[s.user_id];
+      return {
+        id: s.id,
+        userId: s.user_id,
+        userName: u?.name || "User",
+        userAvatar: u?.avatar || "",
+        imageUrl: s.image_url || "",
+        caption: s.caption || undefined,
+        createdAt: s.created_at,
+      };
+    }));
 
     // Circles
     const membersByCircle: Record<string, string[]> = {};
@@ -270,7 +312,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     return () => { supabase.removeChannel(ch); };
   }, [session?.user?.id, profilesCache]);
 
-  // Lazy-load messages & expenses for an event when needed
+  // Lazy-load messages, expenses, alerts, photos, reactions, pins
   const ensureEventCollab = useCallback(async (eventId: string) => {
     if (messages[eventId] === undefined) {
       const { data } = await supabase.from("messages").select("*").eq("event_id", eventId).order("created_at");
@@ -278,6 +320,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         ...prev,
         [eventId]: (data || []).map((m: any) => {
           const sp = profilesCache[m.sender_id];
+          const isImg = m.message_type === "image";
           return {
             id: m.id,
             senderId: m.sender_id || "system",
@@ -285,7 +328,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
             senderAvatar: sp?.avatar || "",
             content: m.content,
             timestamp: new Date(m.created_at).toLocaleTimeString("en", { hour: "numeric", minute: "2-digit" }),
-            type: m.message_type === "system" ? "system" : "text",
+            type: m.message_type === "system" ? "system" : isImg ? "image" : "text",
+            imageUrl: isImg ? m.content : undefined,
           };
         }),
       }));
@@ -309,7 +353,43 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         }),
       }));
     }
-  }, [messages, expenses, profilesCache]);
+    if (eventAlerts[eventId] === undefined) {
+      const { data } = await supabase.from("event_alerts").select("*").eq("event_id", eventId).order("created_at", { ascending: false });
+      setEventAlerts((prev) => ({
+        ...prev,
+        [eventId]: (data || []).map((a: any) => ({
+          id: a.id, eventId: a.event_id, kind: a.kind, title: a.title,
+          body: a.body || undefined, createdAt: a.created_at,
+        })),
+      }));
+    }
+    if (eventPhotos[eventId] === undefined) {
+      const { data } = await supabase.from("event_photos").select("*").eq("event_id", eventId).order("created_at", { ascending: false });
+      setEventPhotos((prev) => ({
+        ...prev,
+        [eventId]: (data || []).map((p: any) => {
+          const u = profilesCache[p.uploaded_by];
+          return {
+            id: p.id, eventId: p.event_id, uploadedBy: p.uploaded_by,
+            uploaderName: u?.name || "User", imageUrl: p.image_url,
+            caption: p.caption || undefined, createdAt: p.created_at,
+          };
+        }),
+      }));
+    }
+    if (reactions[eventId] === undefined) {
+      const { data } = await supabase.from("message_reactions").select("*").eq("event_id", eventId);
+      const map: Record<string, { emoji: string; userId: string }[]> = {};
+      (data || []).forEach((r: any) => {
+        (map[r.message_id] ||= []).push({ emoji: r.emoji, userId: r.user_id });
+      });
+      setReactions((prev) => ({ ...prev, [eventId]: map }));
+    }
+    if (pinnedMessageIds[eventId] === undefined) {
+      const { data } = await supabase.from("pinned_messages").select("*").eq("event_id", eventId);
+      setPinnedMessageIds((prev) => ({ ...prev, [eventId]: (data || []).map((p: any) => p.message_id) }));
+    }
+  }, [messages, expenses, eventAlerts, eventPhotos, reactions, pinnedMessageIds, profilesCache]);
 
   // Auto-load collab data for joined events as they appear
   useEffect(() => {
@@ -393,6 +473,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       title: eventData.title,
       description: eventData.description,
       location: eventData.location,
+      latitude: eventData.latitude ?? null,
+      longitude: eventData.longitude ?? null,
       start_date: eventData.date,
       end_date: eventData.endDate || null,
       start_time: eventData.time || null,
@@ -401,9 +483,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       circle_group_ids: eventData.circleGroups,
       participant_limit: eventData.participantLimit,
       privacy: eventData.privacy,
+      private_rule: eventData.privateRule || "any",
+      transport_info: eventData.transportInfo || null,
+      weather_alerts_enabled: eventData.weatherAlertsEnabled || false,
       imported_from: eventData.importedFrom || null,
-    }).select().single();
-    if (error || !created) { toast.error(error?.message || "Failed"); return; }
+    } as any).select().single();
+    if (error || !created) { toast.error(error?.message || "Failed to create event"); return; }
 
     if (eventData.anonymousInvites?.length) {
       await supabase.from("anonymous_invites").insert(
@@ -452,12 +537,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // ====== CHAT / EXPENSES ======
-  const sendMessage = async (eventId: string, content: string) => {
-    if (!user) return;
-    const { error } = await supabase.from("messages").insert({
-      event_id: eventId, sender_id: user.id, content, message_type: "user",
-    });
-    if (error) toast.error(error.message);
   };
 
   const addExpense = async (eventId: string, expense: Omit<Expense, "id">) => {
@@ -483,6 +562,141 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     await supabase.from("notifications").update({ unread: false }).eq("id", id);
   };
 
+  // ====== CHAT / EXPENSES ======
+  const sendMessage = async (eventId: string, content: string, imageUrl?: string) => {
+    if (!user) return;
+    const { error } = await supabase.from("messages").insert({
+      event_id: eventId,
+      sender_id: user.id,
+      content: imageUrl || content,
+      message_type: imageUrl ? "image" : "user",
+    });
+    if (error) toast.error(error.message);
+  };
+
+  const uploadChatImage = async (eventId: string, file: File): Promise<string | null> => {
+    if (!user) return null;
+    const ext = file.name.split(".").pop() || "png";
+    const path = `${user.id}/${eventId}/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("message-media").upload(path, file);
+    if (error) { toast.error(error.message); return null; }
+    return supabase.storage.from("message-media").getPublicUrl(path).data.publicUrl;
+  };
+
+  const toggleReaction = async (eventId: string, messageId: string, emoji: string) => {
+    if (!user) return;
+    const existing = (reactions[eventId]?.[messageId] || []).find(
+      (r) => r.userId === user.id && r.emoji === emoji
+    );
+    if (existing) {
+      await supabase.from("message_reactions").delete()
+        .eq("message_id", messageId).eq("user_id", user.id).eq("emoji", emoji);
+      setReactions((prev) => {
+        const ev = { ...(prev[eventId] || {}) };
+        ev[messageId] = (ev[messageId] || []).filter((r) => !(r.userId === user.id && r.emoji === emoji));
+        return { ...prev, [eventId]: ev };
+      });
+    } else {
+      const { error } = await supabase.from("message_reactions").insert({
+        message_id: messageId, event_id: eventId, user_id: user.id, emoji,
+      });
+      if (error) { toast.error(error.message); return; }
+      setReactions((prev) => {
+        const ev = { ...(prev[eventId] || {}) };
+        ev[messageId] = [...(ev[messageId] || []), { emoji, userId: user.id }];
+        return { ...prev, [eventId]: ev };
+      });
+    }
+  };
+
+  const togglePin = async (eventId: string, messageId: string) => {
+    if (!user) return;
+    const isPinned = (pinnedMessageIds[eventId] || []).includes(messageId);
+    if (isPinned) {
+      await supabase.from("pinned_messages").delete().eq("event_id", eventId).eq("message_id", messageId);
+      setPinnedMessageIds((prev) => ({
+        ...prev,
+        [eventId]: (prev[eventId] || []).filter((id) => id !== messageId),
+      }));
+    } else {
+      const { error } = await supabase.from("pinned_messages").insert({
+        event_id: eventId, message_id: messageId, pinned_by: user.id,
+      });
+      if (error) { toast.error(error.message); return; }
+      setPinnedMessageIds((prev) => ({
+        ...prev,
+        [eventId]: [...(prev[eventId] || []), messageId],
+      }));
+    }
+  };
+
+  const createStory = async (file: File, caption?: string) => {
+    if (!user) return;
+    const ext = file.name.split(".").pop() || "png";
+    const path = `${user.id}/${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("stories").upload(path, file);
+    if (upErr) { toast.error(upErr.message); return; }
+    const url = supabase.storage.from("stories").getPublicUrl(path).data.publicUrl;
+    const { data, error } = await supabase.from("stories")
+      .insert({ user_id: user.id, image_url: url, caption: caption || null })
+      .select().single();
+    if (error || !data) { toast.error(error?.message || "Failed"); return; }
+    setStories((prev) => [{
+      id: data.id, userId: user.id, userName: user.name, userAvatar: user.avatar,
+      imageUrl: url, caption: caption || undefined, createdAt: data.created_at,
+    }, ...prev]);
+    toast.success("Story posted");
+  };
+
+  const createEventAlert = async (eventId: string, kind: EventAlert["kind"], title: string, body?: string) => {
+    if (!user) return;
+    const { data, error } = await supabase.from("event_alerts").insert({
+      event_id: eventId, kind, title, body: body || null, created_by: user.id,
+    }).select().single();
+    if (error || !data) { toast.error(error?.message || "Failed"); return; }
+    const ev = events.find((e) => e.id === eventId);
+    // Notify all participants
+    if (ev) {
+      const recipients = ev.participants.filter((p) => p.id !== user.id).map((p) => p.id);
+      if (recipients.length) {
+        await supabase.from("notifications").insert(
+          recipients.map((uid) => ({
+            user_id: uid, type: "alert" as const,
+            title: `Alert: ${title}`, body: body || `Update for ${ev.title}`,
+            event_id: eventId,
+          }))
+        );
+      }
+    }
+    setEventAlerts((prev) => ({
+      ...prev,
+      [eventId]: [{
+        id: data.id, eventId, kind, title, body: body || undefined, createdAt: data.created_at,
+      }, ...(prev[eventId] || [])],
+    }));
+    toast.success("Alert sent to participants");
+  };
+
+  const uploadEventPhoto = async (eventId: string, file: File, caption?: string) => {
+    if (!user) return;
+    const ext = file.name.split(".").pop() || "png";
+    const path = `${user.id}/${eventId}/${Date.now()}.${ext}`;
+    const { error: upErr } = await supabase.storage.from("event-photos").upload(path, file);
+    if (upErr) { toast.error(upErr.message); return; }
+    const url = supabase.storage.from("event-photos").getPublicUrl(path).data.publicUrl;
+    const { data, error } = await supabase.from("event_photos").insert({
+      event_id: eventId, uploaded_by: user.id, image_url: url, caption: caption || null,
+    }).select().single();
+    if (error || !data) { toast.error(error?.message || "Failed"); return; }
+    setEventPhotos((prev) => ({
+      ...prev,
+      [eventId]: [{
+        id: data.id, eventId, uploadedBy: user.id, uploaderName: user.name,
+        imageUrl: url, caption: caption || undefined, createdAt: data.created_at,
+      }, ...(prev[eventId] || [])],
+    }));
+  };
+
   // ====== PROFILE EDIT ======
   const updateUserProfile = async (updates: { name?: string; bio?: string; avatar?: string }) => {
     if (!user) return;
@@ -500,6 +714,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     });
     toast.success("Profile updated");
   };
+
 
   const uploadAvatar = async (file: File): Promise<string | null> => {
     if (!user) return null;
@@ -540,12 +755,15 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       user, isAuthenticated: !!session, loading,
       events, circleGroups, notifications, selectedInterests, messages, expenses,
       profiles: Object.values(profilesCache),
+      stories, eventAlerts, eventPhotos, reactions, pinnedMessageIds,
       login, signup, logout, setSelectedInterests,
       joinEvent, requestJoinEvent, handleJoinRequest, createEvent,
       addCircleGroup, removeCircleGroup, updateUserInterests,
-      sendMessage, addExpense, markNotificationRead,
+      sendMessage, uploadChatImage, toggleReaction, togglePin,
+      addExpense, markNotificationRead,
       updateUserProfile, uploadAvatar,
       addCircleMember, removeCircleMember, createCircleInvite,
+      createStory, createEventAlert, uploadEventPhoto,
     }}>
       {children}
     </AppContext.Provider>
