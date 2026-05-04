@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { ArrowLeft, Camera, Plus, X, Upload, Users, UserPlus, CalendarRange } from "lucide-react";
+import { ArrowLeft, Camera, X, Upload, Users, UserPlus, CalendarRange, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import MapPicker from "@/components/MapPicker";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/contexts/AppContext";
 import { INTEREST_TAGS } from "@/lib/mock-data";
@@ -21,11 +22,16 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
+  const [lat, setLat] = useState<number | undefined>();
+  const [lng, setLng] = useState<number | undefined>();
   const [date, setDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [isMultiDay, setIsMultiDay] = useState(false);
   const [time, setTime] = useState("");
   const [limit, setLimit] = useState("10");
+  const [transportInfo, setTransportInfo] = useState("");
+  const [weatherAlerts, setWeatherAlerts] = useState(false);
+  const [privateRule, setPrivateRule] = useState<"any" | "all">("any");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedCircles, setSelectedCircles] = useState<string[]>([]);
   const [privacy, setPrivacy] = useState<"public" | "private" | "anonymous">("public");
@@ -56,6 +62,8 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
       title,
       description,
       location,
+      latitude: lat ?? null,
+      longitude: lng ?? null,
       date,
       endDate: isMultiDay ? endDate : undefined,
       time,
@@ -64,6 +72,9 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
       circleGroups: selectedCircles,
       participantLimit: parseInt(limit) || 10,
       privacy,
+      privateRule,
+      transportInfo: transportInfo || undefined,
+      weatherAlertsEnabled: weatherAlerts,
       anonymousInvites,
       importedFrom: null,
     });
