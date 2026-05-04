@@ -198,6 +198,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         title: e.title,
         description: e.description || "",
         location: e.location || "",
+        latitude: (e as any).latitude ?? null,
+        longitude: (e as any).longitude ?? null,
         date: e.start_date,
         endDate: e.end_date || undefined,
         time: e.start_time || "",
@@ -208,9 +210,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         participants: (partsByEvent[e.id] || []).map((id) => profiles[id]).filter(Boolean),
         organizer,
         privacy: e.privacy,
+        privateRule: ((e as any).private_rule || "any") as PrivateRule,
         status: e.status,
         anonymousInvites: anonByEvent[e.id] || [],
         importedFrom: e.imported_from as any,
+        transportInfo: (e as any).transport_info || undefined,
+        weatherAlertsEnabled: (e as any).weather_alerts_enabled || false,
         joinRequests: (reqsByEvent[e.id] || []).map((r) => ({
           id: r.id,
           userId: r.user_id,
@@ -222,6 +227,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       };
     });
     setEvents(builtEvents);
+
+    // Stories (last 24h)
+    const { data: storiesData } = await supabase
+      .from("stories").select("*").gt("expires_at", new Date().toISOString())
+      .order("created_at", { ascending: false });
+    setStories((storiesData || []).map((s: any) => {
+      const u = profiles[s.user_id];
+      return {
+        id: s.id,
+        userId: s.user_id,
+        userName: u?.name || "User",
+        userAvatar: u?.avatar || "",
+        imageUrl: s.image_url || "",
+        caption: s.caption || undefined,
+        createdAt: s.created_at,
+      };
+    }));
 
     // Circles
     const membersByCircle: Record<string, string[]> = {};
