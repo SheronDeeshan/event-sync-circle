@@ -435,6 +435,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       title: eventData.title,
       description: eventData.description,
       location: eventData.location,
+      latitude: eventData.latitude ?? null,
+      longitude: eventData.longitude ?? null,
       start_date: eventData.date,
       end_date: eventData.endDate || null,
       start_time: eventData.time || null,
@@ -443,9 +445,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       circle_group_ids: eventData.circleGroups,
       participant_limit: eventData.participantLimit,
       privacy: eventData.privacy,
+      private_rule: eventData.privateRule || "any",
+      transport_info: eventData.transportInfo || null,
+      weather_alerts_enabled: eventData.weatherAlertsEnabled || false,
       imported_from: eventData.importedFrom || null,
-    }).select().single();
-    if (error || !created) { toast.error(error?.message || "Failed"); return; }
+    } as any).select().single();
+    if (error || !created) { toast.error(error?.message || "Failed to create event"); return; }
 
     if (eventData.anonymousInvites?.length) {
       await supabase.from("anonymous_invites").insert(
