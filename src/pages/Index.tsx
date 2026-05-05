@@ -67,7 +67,7 @@ const AppContent = () => {
     <>
       <div className="max-w-lg mx-auto">
         {screen === "home" && (
-          <HomeFeed onEventClick={navigateToEvent} />
+          <HomeFeed onEventClick={navigateToEvent} onDiscover={() => setScreen("discover")} />
         )}
         {screen === "discover" && (
           <DiscoverScreen onEventClick={navigateToEvent} />
