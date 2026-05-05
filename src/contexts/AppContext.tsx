@@ -537,7 +537,6 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // ====== CHAT / EXPENSES ======
-  };
 
   const addExpense = async (eventId: string, expense: Omit<Expense, "id">) => {
     if (!user) return;
