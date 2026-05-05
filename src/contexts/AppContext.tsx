@@ -39,7 +39,7 @@ interface AppContextType {
   joinEvent: (eventId: string) => Promise<void>;
   requestJoinEvent: (eventId: string, message?: string) => Promise<void>;
   handleJoinRequest: (eventId: string, requestId: string, status: JoinRequestStatus) => Promise<void>;
-  createEvent: (event: Omit<EventItem, "id" | "participants" | "organizer" | "status" | "joinRequests">) => Promise<void>;
+  createEvent: (event: Omit<EventItem, "id" | "participants" | "organizer" | "status" | "joinRequests">) => Promise<boolean>;
   addCircleGroup: (name: string, emoji: string) => Promise<void>;
   removeCircleGroup: (id: string) => Promise<void>;
   updateUserInterests: (interests: string[]) => Promise<void>;
@@ -467,8 +467,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const createEvent = async (eventData: Omit<EventItem, "id" | "participants" | "organizer" | "status" | "joinRequests">) => {
-    if (!user) return;
-    const { data: created, error } = await supabase.from("events").insert({
+    if (!user) return false;
+    const eventId = crypto.randomUUID();
+    const { error } = await supabase.from("events").insert({
+      id: eventId,
       organizer_id: user.id,
       title: eventData.title,
       description: eventData.description,
@@ -487,30 +489,31 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       transport_info: eventData.transportInfo || null,
       weather_alerts_enabled: eventData.weatherAlertsEnabled || false,
       imported_from: eventData.importedFrom || null,
-    } as any).select().single();
-    if (error || !created) { toast.error(error?.message || "Failed to create event"); return; }
+    } as any);
+    if (error) { toast.error(error.message || "Failed to create event"); return false; }
 
     if (eventData.anonymousInvites?.length) {
       await supabase.from("anonymous_invites").insert(
-        eventData.anonymousInvites.map((invitee_id) => ({ event_id: created.id, invitee_id }))
+        eventData.anonymousInvites.map((invitee_id) => ({ event_id: eventId, invitee_id }))
       );
       await supabase.from("notifications").insert(
         eventData.anonymousInvites.map((invitee_id) => ({
           user_id: invitee_id, type: "anonymous_invite" as const,
           title: "Someone thinks you'd like this!",
-          body: `You've been anonymously suggested for ${created.title}`,
-          event_id: created.id,
+          body: `You've been anonymously suggested for ${eventData.title}`,
+          event_id: eventId,
         }))
       );
     }
 
     await supabase.from("messages").insert({
-      event_id: created.id, sender_id: user.id, message_type: "system",
-      content: `Welcome to ${created.title}! 🎉 This is your collaboration space.`,
+      event_id: eventId, sender_id: user.id, message_type: "system",
+      content: `Welcome to ${eventData.title}! 🎉 This is your collaboration space.`,
     });
 
     toast.success("Event created");
     await loadAll();
+    return true;
   };
 
   // ====== CIRCLES ======
