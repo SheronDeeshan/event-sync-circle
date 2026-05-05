@@ -8,7 +8,7 @@ interface HomeFeedProps {
   onDiscover?: () => void;
 }
 
-const HomeFeed = ({ onEventClick }: HomeFeedProps) => {
+const HomeFeed = ({ onEventClick, onDiscover }: HomeFeedProps) => {
   const { user, events, selectedInterests, setSelectedInterests } = useApp();
 
   const toggleInterest = (tag: string) => {
@@ -19,22 +19,37 @@ const HomeFeed = ({ onEventClick }: HomeFeedProps) => {
     );
   };
 
+  // Sort: newest first (creation order proxied by reverse list order from server which is by start_date asc; use id-stable sort by date desc)
+  const sortedEvents = [...events].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+
   const filteredEvents =
     selectedInterests.length === 0
-      ? events
-      : events.filter((e) => e.tags.some((t) => selectedInterests.includes(t)));
+      ? sortedEvents
+      : sortedEvents.filter((e) => e.tags.some((t) => selectedInterests.includes(t)));
 
   const recommendedEvents = user
-    ? events.filter((e) => e.tags.some((t) => user.interests.includes(t)))
+    ? sortedEvents.filter((e) => e.tags.some((t) => user.interests.includes(t)))
     : [];
 
   return (
     <div className="pb-24 pt-2">
-      <div className="px-5 mb-5">
-        <h1 className="text-2xl font-bold text-foreground">
-          Hey, {user?.name?.split(" ")[0] || "there"} 👋
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">Discover events that match your vibe</p>
+      <div className="px-5 mb-5 flex items-start justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <h1 className="text-2xl font-bold text-foreground">
+            Hey, {user?.name?.split(" ")[0] || "there"} 👋
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">Your circle, your events</p>
+        </div>
+        {onDiscover && (
+          <button
+            onClick={onDiscover}
+            aria-label="Discover events"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/80 transition-colors"
+          >
+            <Compass size={14} />
+            Discover
+          </button>
+        )}
       </div>
 
       {/* Interest filter chips */}
