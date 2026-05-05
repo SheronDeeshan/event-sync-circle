@@ -39,6 +39,26 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
   const [privacy, setPrivacy] = useState<"public" | "private" | "anonymous">("public");
   const [anonymousInvites, setAnonymousInvites] = useState<string[]>([]);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [coverImage, setCoverImage] = useState<string>("");
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCoverSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+    setUploadingCover(true);
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${user.id}/covers/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("event-photos").upload(path, file);
+    if (error) {
+      toast.error(error.message);
+      setUploadingCover(false);
+      return;
+    }
+    const url = supabase.storage.from("event-photos").getPublicUrl(path).data.publicUrl;
+    setCoverImage(url);
+    setUploadingCover(false);
+  };
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
