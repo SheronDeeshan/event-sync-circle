@@ -56,9 +56,9 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
     );
   };
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!title || !description || !location || !date) return;
-    createEvent({
+    const created = await createEvent({
       title,
       description,
       location,
@@ -78,7 +78,7 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
       anonymousInvites,
       importedFrom: null,
     });
-    onCreated();
+    if (created) onCreated();
   };
 
   const handleImport = (source: string) => {
