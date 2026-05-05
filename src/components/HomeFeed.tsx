@@ -5,6 +5,7 @@ import EventCard from "@/components/EventCard";
 
 interface HomeFeedProps {
   onEventClick: (eventId: string) => void;
+  onDiscover?: () => void;
 }
 
 const HomeFeed = ({ onEventClick }: HomeFeedProps) => {
