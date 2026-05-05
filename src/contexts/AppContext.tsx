@@ -660,7 +660,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       if (recipients.length) {
         await supabase.from("notifications").insert(
           recipients.map((uid) => ({
-            user_id: uid, type: "alert" as const,
+            user_id: uid, type: "event_update" as const,
             title: `Alert: ${title}`, body: body || `Update for ${ev.title}`,
             event_id: eventId,
           }))
