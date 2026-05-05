@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ArrowLeft, Camera, X, Upload, Users, UserPlus, CalendarRange, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import MapPicker from "@/components/MapPicker";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/contexts/AppContext";
 import { INTEREST_TAGS } from "@/lib/mock-data";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface CreateEventProps {
   onBack: () => void;
