@@ -89,7 +89,7 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
       date,
       endDate: isMultiDay ? endDate : undefined,
       time,
-      coverImage: "",
+      coverImage,
       tags: selectedTags,
       circleGroups: selectedCircles,
       participantLimit: parseInt(limit) || 10,
