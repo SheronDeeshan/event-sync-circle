@@ -1,3 +1,4 @@
+import { Compass } from "lucide-react";
 import { useApp } from "@/contexts/AppContext";
 import { INTEREST_TAGS } from "@/lib/mock-data";
 import EventCard from "@/components/EventCard";
