@@ -156,11 +156,22 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
       )}
 
       <div className="px-5 space-y-5">
-        {/* Cover image placeholder */}
-        <div className="w-full h-40 rounded-2xl bg-secondary border-2 border-dashed border-border flex flex-col items-center justify-center">
-          <Camera size={28} className="text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground">Add cover photo</p>
-        </div>
+        {/* Cover image */}
+        <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleCoverSelect} />
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          className="w-full h-40 rounded-2xl bg-secondary border-2 border-dashed border-border flex flex-col items-center justify-center overflow-hidden relative"
+        >
+          {coverImage ? (
+            <img src={coverImage} alt="Event cover" className="w-full h-full object-cover" />
+          ) : (
+            <>
+              <Camera size={28} className="text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">{uploadingCover ? "Uploading…" : "Add cover photo"}</p>
+            </>
+          )}
+        </button>
 
         <div className="space-y-4">
           <div>
