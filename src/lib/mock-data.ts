@@ -54,6 +54,7 @@ export interface EventItem {
   joinRequests: JoinRequest[];
   transportInfo?: string;
   weatherAlertsEnabled?: boolean;
+  createdAt?: string;
 }
 
 export interface Message {
