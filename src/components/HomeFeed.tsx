@@ -9,7 +9,7 @@ interface HomeFeedProps {
 }
 
 const HomeFeed = ({ onEventClick, onDiscover }: HomeFeedProps) => {
-  const { user, events, selectedInterests, setSelectedInterests } = useApp();
+  const { user, events, circleGroups, selectedInterests, setSelectedInterests } = useApp();
 
   const toggleInterest = (tag: string) => {
     setSelectedInterests(
@@ -19,8 +19,10 @@ const HomeFeed = ({ onEventClick, onDiscover }: HomeFeedProps) => {
     );
   };
 
-  // Sort: newest first (creation order proxied by reverse list order from server which is by start_date asc; use id-stable sort by date desc)
-  const sortedEvents = [...events].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  // Newest-created first
+  const sortedEvents = [...events].sort((a, b) =>
+    (b.createdAt || "").localeCompare(a.createdAt || "")
+  );
 
   const filteredEvents =
     selectedInterests.length === 0
@@ -30,6 +32,12 @@ const HomeFeed = ({ onEventClick, onDiscover }: HomeFeedProps) => {
   const recommendedEvents = user
     ? sortedEvents.filter((e) => e.tags.some((t) => user.interests.includes(t)))
     : [];
+
+  // Group events by circle
+  const eventsByCircle = circleGroups.map((g) => ({
+    group: g,
+    events: sortedEvents.filter((e) => e.circleGroups.includes(g.id)),
+  })).filter((c) => c.events.length > 0);
 
   return (
     <div className="pb-24 pt-2">
