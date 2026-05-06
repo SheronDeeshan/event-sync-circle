@@ -216,6 +216,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         importedFrom: e.imported_from as any,
         transportInfo: (e as any).transport_info || undefined,
         weatherAlertsEnabled: (e as any).weather_alerts_enabled || false,
+        createdAt: e.created_at,
         joinRequests: (reqsByEvent[e.id] || []).map((r) => ({
           id: r.id,
           userId: r.user_id,
@@ -419,6 +420,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     const { error } = await supabase.from("event_participants").insert({ event_id: eventId, user_id: user.id });
     if (error) { toast.error(error.message); return; }
+    const ev = events.find((e) => e.id === eventId);
+    if (ev && ev.organizer.id !== user.id && !ev.organizer.isAnonymous) {
+      await supabase.from("notifications").insert({
+        user_id: ev.organizer.id,
+        type: "event_update",
+        title: "Someone joined your event",
+        body: `${user.name} joined ${ev.title}`,
+        event_id: eventId,
+      });
+    }
+    toast.success("Joined event");
     await loadAll();
   };
 

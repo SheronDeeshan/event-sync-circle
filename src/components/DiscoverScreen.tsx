@@ -14,8 +14,13 @@ const DiscoverScreen = ({ onEventClick }: DiscoverScreenProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
+  // Sort by newest created
+  const allSorted = [...events].sort((a, b) =>
+    (b.createdAt || "").localeCompare(a.createdAt || "")
+  );
+
   // Simple matching: score events by shared interests
-  const scoredEvents = events.map((event) => {
+  const scoredEvents = allSorted.map((event) => {
     const sharedInterests = user
       ? event.tags.filter((t) => user.interests.includes(t)).length
       : 0;

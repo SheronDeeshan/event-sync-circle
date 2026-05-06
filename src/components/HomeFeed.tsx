@@ -9,7 +9,7 @@ interface HomeFeedProps {
 }
 
 const HomeFeed = ({ onEventClick, onDiscover }: HomeFeedProps) => {
-  const { user, events, selectedInterests, setSelectedInterests } = useApp();
+  const { user, events, circleGroups, selectedInterests, setSelectedInterests } = useApp();
 
   const toggleInterest = (tag: string) => {
     setSelectedInterests(
@@ -19,8 +19,10 @@ const HomeFeed = ({ onEventClick, onDiscover }: HomeFeedProps) => {
     );
   };
 
-  // Sort: newest first (creation order proxied by reverse list order from server which is by start_date asc; use id-stable sort by date desc)
-  const sortedEvents = [...events].sort((a, b) => (b.date || "").localeCompare(a.date || ""));
+  // Newest-created first
+  const sortedEvents = [...events].sort((a, b) =>
+    (b.createdAt || "").localeCompare(a.createdAt || "")
+  );
 
   const filteredEvents =
     selectedInterests.length === 0
@@ -30,6 +32,12 @@ const HomeFeed = ({ onEventClick, onDiscover }: HomeFeedProps) => {
   const recommendedEvents = user
     ? sortedEvents.filter((e) => e.tags.some((t) => user.interests.includes(t)))
     : [];
+
+  // Group events by circle
+  const eventsByCircle = circleGroups.map((g) => ({
+    group: g,
+    events: sortedEvents.filter((e) => e.circleGroups.includes(g.id)),
+  })).filter((c) => c.events.length > 0);
 
   return (
     <div className="pb-24 pt-2">
@@ -83,7 +91,27 @@ const HomeFeed = ({ onEventClick, onDiscover }: HomeFeedProps) => {
         </div>
       )}
 
-      {/* All events */}
+      {/* By Circle */}
+      {eventsByCircle.length > 0 && selectedInterests.length === 0 && (
+        <div className="px-5 mb-6 space-y-5">
+          {eventsByCircle.map(({ group, events: circleEvents }) => (
+            <div key={group.id}>
+              <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                <span>{group.emoji}</span>
+                <span>{group.name}</span>
+                <span className="text-xs text-muted-foreground font-normal">({circleEvents.length})</span>
+              </h2>
+              <div className="space-y-4">
+                {circleEvents.slice(0, 3).map((event) => (
+                  <EventCard key={event.id} event={event} onClick={() => onEventClick(event.id)} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+
       <div className="px-5">
         <h2 className="text-lg font-semibold text-foreground mb-3">
           {selectedInterests.length > 0 ? "Matching Events" : "All Events"}

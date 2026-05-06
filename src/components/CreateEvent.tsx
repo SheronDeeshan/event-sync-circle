@@ -41,6 +41,7 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
   const [showImportModal, setShowImportModal] = useState(false);
   const [coverImage, setCoverImage] = useState<string>("");
   const [uploadingCover, setUploadingCover] = useState(false);
+  const [customTag, setCustomTag] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCoverSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -348,7 +349,7 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
           {/* Interest tags */}
           <div>
             <label className="text-sm font-medium text-foreground mb-2 block">Tags</label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 mb-2">
               {INTEREST_TAGS.map((tag) => (
                 <button
                   key={tag}
@@ -362,6 +363,44 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
                   {tag}
                 </button>
               ))}
+              {selectedTags.filter((t) => !INTEREST_TAGS.includes(t)).map((tag) => (
+                <button
+                  key={tag}
+                  onClick={() => toggleTag(tag)}
+                  className="px-3 py-1.5 rounded-full text-xs font-medium bg-primary text-primary-foreground inline-flex items-center gap-1"
+                >
+                  {tag}
+                  <X size={10} />
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Add custom tag (e.g. 🌮 Tacos)"
+                value={customTag}
+                onChange={(e) => setCustomTag(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    const t = customTag.trim();
+                    if (t && !selectedTags.includes(t)) setSelectedTags([...selectedTags, t]);
+                    setCustomTag("");
+                  }
+                }}
+                className="h-10 rounded-xl bg-secondary border-0 text-foreground placeholder:text-muted-foreground"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  const t = customTag.trim();
+                  if (t && !selectedTags.includes(t)) setSelectedTags([...selectedTags, t]);
+                  setCustomTag("");
+                }}
+                className="h-10 rounded-xl"
+              >
+                Add
+              </Button>
             </div>
           </div>
         </div>
