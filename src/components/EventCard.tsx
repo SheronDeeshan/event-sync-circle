@@ -18,7 +18,7 @@ interface EventCardProps {
 }
 
 const EventCard = ({ event, onClick }: EventCardProps) => {
-  const image = eventImages[event.id] || eventHike;
+  const image = event.coverImage || eventImages[event.id] || eventHike;
   const dateObj = new Date(event.date + "T00:00:00");
   const month = dateObj.toLocaleString("en", { month: "short" }).toUpperCase();
   const day = dateObj.getDate();
