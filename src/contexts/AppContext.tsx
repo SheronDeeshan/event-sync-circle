@@ -216,6 +216,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         importedFrom: e.imported_from as any,
         transportInfo: (e as any).transport_info || undefined,
         weatherAlertsEnabled: (e as any).weather_alerts_enabled || false,
+        createdAt: e.created_at,
         joinRequests: (reqsByEvent[e.id] || []).map((r) => ({
           id: r.id,
           userId: r.user_id,
