@@ -420,6 +420,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (!user) return;
     const { error } = await supabase.from("event_participants").insert({ event_id: eventId, user_id: user.id });
     if (error) { toast.error(error.message); return; }
+    const ev = events.find((e) => e.id === eventId);
+    if (ev && ev.organizer.id !== user.id && !ev.organizer.isAnonymous) {
+      await supabase.from("notifications").insert({
+        user_id: ev.organizer.id,
+        type: "accepted",
+        title: "Someone joined your event",
+        body: `${user.name} joined ${ev.title}`,
+        event_id: eventId,
+      });
+    }
+    toast.success("Joined event");
     await loadAll();
   };
 
