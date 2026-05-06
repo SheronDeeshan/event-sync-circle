@@ -91,7 +91,27 @@ const HomeFeed = ({ onEventClick, onDiscover }: HomeFeedProps) => {
         </div>
       )}
 
-      {/* All events */}
+      {/* By Circle */}
+      {eventsByCircle.length > 0 && selectedInterests.length === 0 && (
+        <div className="px-5 mb-6 space-y-5">
+          {eventsByCircle.map(({ group, events: circleEvents }) => (
+            <div key={group.id}>
+              <h2 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                <span>{group.emoji}</span>
+                <span>{group.name}</span>
+                <span className="text-xs text-muted-foreground font-normal">({circleEvents.length})</span>
+              </h2>
+              <div className="space-y-4">
+                {circleEvents.slice(0, 3).map((event) => (
+                  <EventCard key={event.id} event={event} onClick={() => onEventClick(event.id)} />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+
       <div className="px-5">
         <h2 className="text-lg font-semibold text-foreground mb-3">
           {selectedInterests.length > 0 ? "Matching Events" : "All Events"}
