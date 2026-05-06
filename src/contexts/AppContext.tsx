@@ -424,7 +424,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     if (ev && ev.organizer.id !== user.id && !ev.organizer.isAnonymous) {
       await supabase.from("notifications").insert({
         user_id: ev.organizer.id,
-        type: "accepted",
+        type: "event_update",
         title: "Someone joined your event",
         body: `${user.name} joined ${ev.title}`,
         event_id: eventId,
