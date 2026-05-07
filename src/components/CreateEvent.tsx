@@ -82,13 +82,15 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
   };
 
   const handleCreate = async () => {
-    if (!title || !description || !location || !date) return;
+    if (!title || !description || !date) return;
+    if (!isOnline && !location) return;
+    if (isOnline && !onlineUrl) return;
     const created = await createEvent({
       title,
       description,
-      location,
-      latitude: lat ?? null,
-      longitude: lng ?? null,
+      location: isOnline ? "Online" : location,
+      latitude: isOnline ? null : (lat ?? null),
+      longitude: isOnline ? null : (lng ?? null),
       date,
       endDate: isMultiDay ? endDate : undefined,
       time,
@@ -101,6 +103,8 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
       transportInfo: transportInfo || undefined,
       weatherAlertsEnabled: weatherAlerts,
       anonymousInvites,
+      isOnline,
+      onlineUrl: isOnline ? onlineUrl : undefined,
       importedFrom: null,
     });
     if (created) onCreated();
