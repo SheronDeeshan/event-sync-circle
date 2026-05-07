@@ -172,7 +172,7 @@ const ProfileScreen = () => {
           {[
             { label: "Events", value: String(myEvents.length) },
             { label: "Circles", value: String(myCircles.length) },
-            { label: "Friends", value: String(new Set(myCircles.flatMap((c) => c.members)).size) },
+            { label: "Friends", value: String(Math.max(0, new Set(myCircles.flatMap((c) => c.members)).size - 1)) },
           ].map(({ label, value }) => (
             <div key={label} className="bg-card rounded-2xl p-4 text-center shadow-card">
               <p className="text-2xl font-bold text-foreground">{value}</p>
