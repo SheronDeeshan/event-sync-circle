@@ -42,6 +42,8 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
   const [coverImage, setCoverImage] = useState<string>("");
   const [uploadingCover, setUploadingCover] = useState(false);
   const [customTag, setCustomTag] = useState("");
+  const [isOnline, setIsOnline] = useState(false);
+  const [onlineUrl, setOnlineUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCoverSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
