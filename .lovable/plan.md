@@ -1,44 +1,80 @@
+# Platform Improvements Plan
 
+Grouping the requests into 5 work areas. I'll execute in this order so each builds cleanly on the prior one.
 
-# Circle App -- Professional Diagrams and Documentation
+---
 
-I will generate a comprehensive set of professional Mermaid diagrams covering every aspect of the Circle platform. These will be saved as `.mmd` files to `/mnt/documents/`.
+## 1. Bottom nav: replace "Discover" with "Joined" (Circle Spaces)
 
-## Diagrams to Generate
+- Bottom nav tab "Discover" becomes **"Joined"** — lists every event the current user has joined, each opening its **Circle Space** (collaboration view) directly.
+- Discover stays accessible from the top-right button on Home (already implemented).
+- Joined screen sections: Active (upcoming/in-progress) and Past.
 
-### 1. System Architecture Diagram
-High-level overview showing Frontend (React PWA), State Management (AppContext), Backend (future Supabase), and external integrations (Google Maps, Facebook/Instagram import, FCM).
+## 2. Profile
 
-### 2. Database Entity-Relationship Diagram
-Full ERD with tables: Users, Events, CircleGroups, Participants, JoinRequests, Messages, Expenses, Notifications, AnonymousInvites -- showing all relationships and cardinalities.
+- Friend count = `friends.length - 1` is not quite right (own user isn't in the friends list). Real fix: the current screen counts "circle members" including self. Change displayed count to **exclude the current user**.
+- Visitor view already hides circles — keep, show event count only.
 
-### 3. User Flow / Navigation Diagram
-Complete screen navigation: Auth -> Home Feed -> Discover -> Event Detail -> Collaboration Space (Chat/Budget/Travel), Create Event, Profile, Notifications.
+## 3. Alerts (notifications)
 
-### 4. Event Lifecycle State Diagram
-States: Draft -> Open -> Active -> Completed/Cancelled, with transition triggers (publish, first join, organizer action, date pass).
+Add notification creation for these events. Notifications are written to `notifications` table by the actor side (RLS only allows inserting your own row, so we need a SECURITY DEFINER function `notify_users(uuids[], type, title, body, event_id)` to fan-out to others).
 
-### 5. Use Case Diagram
-All actors (User, Organizer, Anonymous User, System) and their use cases: Register, Login, Create Event, Join Event, Approve Request, Chat, Add Expense, Import Event, Discover Events, Manage Profile.
+Triggers added:
+- New member joined event → notify organizer + existing participants
+- New chat message → notify other participants (debounced client-side: only if last notif >2min old)
+- Budget item added/changed → notify participants
+- Event field changed (location, date, time, title, cover) → notify participants
+- Generic "event updated" alert
 
-### 6. Matching Algorithm Flowchart
-How the interest-based matching works: User interests -> Compare with event tags -> Score calculation -> Sort -> Display "For You" feed with match badges.
+## 4. Event management
 
-### 7. Collaboration Space Component Diagram
-Breakdown of the tabbed collaboration space: ChatTab, BudgetTab, TravelTab with their data flows and features.
+- **Edit event** screen (organizer only) — reuse CreateEvent form pre-filled.
+- **Delete event** (organizer only) with confirm.
+- **Share button** — copy public link to clipboard + Web Share API when available.
+- **Open button** — already exists as "Open Circle Space" when joined; add a quick "Open" entry from cards for joined events.
+- **Online events** — add `is_online` + `online_url` columns; CreateEvent toggle "Online event" hides location field, shows URL field.
+- **No duplicate events** — block create if same `(organizer_id, title, start_date)` already exists for this user (DB unique index + friendly client error).
+- Participant add/remove → already creates notifications via #3.
 
-### 8. UI Screen Map / Wireframe Flow
-Visual map of all screens and how they connect, showing the bottom navigation structure and modal overlays (Import, Join Request).
+## 5. Circles
 
-### 9. Authentication Flow Diagram
-Sequence: User -> Auth Screen -> Login/Signup -> Set User State -> Navigate to Home Feed, including anonymous session support.
+- **Searchable by name** — add search input on circle list.
+- **Profile picture** for circle — add `avatar_url` column; upload in create/edit modal.
+- **Short description / bio** — add `description` text column (e.g. "MIT, CS '24", "Acme team"); show under name in lists.
 
-### 10. Join Request / Approval Sequence Diagram
-Sequence between User, System, and Organizer for the join request workflow including notifications.
+---
 
-## Implementation
-- Each diagram as a separate `.mmd` file in `/mnt/documents/`
-- Professional styling using Mermaid's built-in theming
-- Clear labels, proper grouping with subgraphs
-- No emojis in Mermaid syntax (constraint)
+## Technical changes (DB)
 
+```sql
+ALTER TABLE events ADD COLUMN is_online boolean NOT NULL DEFAULT false;
+ALTER TABLE events ADD COLUMN online_url text;
+CREATE UNIQUE INDEX events_no_dupe ON events (organizer_id, lower(title), start_date);
+
+ALTER TABLE circle_groups ADD COLUMN avatar_url text;
+ALTER TABLE circle_groups ADD COLUMN description text;
+
+CREATE FUNCTION public.notify_users(_user_ids uuid[], _type notification_type, _title text, _body text, _event_id uuid)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+BEGIN
+  INSERT INTO notifications (user_id, type, title, body, event_id)
+  SELECT unnest(_user_ids), _type, _title, _body, _event_id;
+END $$;
+```
+
+Files touched (approx):
+- `BottomNav.tsx`, `Index.tsx` — Joined tab
+- new `JoinedSpaces.tsx`
+- `ProfileScreen.tsx` — friend count fix
+- `AppContext.tsx` — `updateEvent`, `deleteEvent`, fan-out notifications via `notify_users` RPC
+- `EventDetail.tsx` — Edit / Delete / Share buttons (organizer)
+- new `EditEvent.tsx` (or reuse CreateEvent in edit mode)
+- `CreateEvent.tsx` — online toggle, dupe check
+- `Circles.tsx` (or wherever circles list lives) — search, avatar, description
+- `collaboration/ChatTab.tsx`, `BudgetTab.tsx` — emit notifications
+
+Since the scope is large, I'll ship in two passes:
+**Pass A (this turn):** #1 Joined tab, #2 profile count, #4 share/edit/delete/online/dedupe, #5 circle search/avatar/description.
+**Pass B (next turn):** #3 full alert fan-out wiring across chat/budget/event-edit.
+
+Let me know if you'd rather flip the order or drop anything.
