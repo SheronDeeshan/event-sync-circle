@@ -79,7 +79,7 @@ const EventDetail = ({ event, onBack, onJoinSpace }: EventDetailProps) => {
     <div className="pb-24 animate-fade-in">
       {/* Hero image */}
       <div className="relative h-64">
-        <img src={image} alt={event.title} className="w-full h-full object-cover" />
+        <img src={event.coverImage || image} alt={event.title} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
         <button
           onClick={onBack}
@@ -91,7 +91,20 @@ const EventDetail = ({ event, onBack, onJoinSpace }: EventDetailProps) => {
           <span className={`px-3 py-1 rounded-full text-[11px] font-medium capitalize ${statusColors[event.status]}`}>
             {event.status}
           </span>
-          <button className="w-10 h-10 rounded-full glass flex items-center justify-center">
+          {isOrganizer && (
+            <>
+              <button onClick={() => setShowEdit(true)} aria-label="Edit event"
+                className="w-10 h-10 rounded-full glass flex items-center justify-center">
+                <Edit2 size={16} className="text-foreground" />
+              </button>
+              <button onClick={() => setShowDelete(true)} aria-label="Delete event"
+                className="w-10 h-10 rounded-full glass flex items-center justify-center">
+                <Trash2 size={16} className="text-destructive" />
+              </button>
+            </>
+          )}
+          <button onClick={handleShare} aria-label="Share event"
+            className="w-10 h-10 rounded-full glass flex items-center justify-center">
             <Share2 size={18} className="text-foreground" />
           </button>
         </div>
