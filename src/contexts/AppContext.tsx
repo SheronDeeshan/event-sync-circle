@@ -495,6 +495,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const createEvent = async (eventData: Omit<EventItem, "id" | "participants" | "organizer" | "status" | "joinRequests">) => {
     if (!user) return false;
+    // Duplicate check (same organizer, title (case-insensitive), start date)
+    const dupe = events.find((e) =>
+      e.organizer.id === user.id &&
+      e.title.trim().toLowerCase() === eventData.title.trim().toLowerCase() &&
+      e.date === eventData.date
+    );
+    if (dupe) {
+      toast.error("You already have an event with this title on that date");
+      return false;
+    }
     const eventId = crypto.randomUUID();
     const { error } = await supabase.from("events").insert({
       id: eventId,
@@ -515,9 +525,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       private_rule: eventData.privateRule || "any",
       transport_info: eventData.transportInfo || null,
       weather_alerts_enabled: eventData.weatherAlertsEnabled || false,
+      is_online: eventData.isOnline || false,
+      online_url: eventData.onlineUrl || null,
       imported_from: eventData.importedFrom || null,
     } as any);
-    if (error) { toast.error(error.message || "Failed to create event"); return false; }
+    if (error) {
+      const msg = /duplicate|unique/i.test(error.message)
+        ? "You already have an event with this title on that date"
+        : (error.message || "Failed to create event");
+      toast.error(msg);
+      return false;
+    }
 
     if (eventData.anonymousInvites?.length) {
       await supabase.from("anonymous_invites").insert(
@@ -533,24 +551,123 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       );
     }
 
+    // Notify circle members of new event
+    const memberIds = circleGroups
+      .filter((g) => eventData.circleGroups.includes(g.id))
+      .flatMap((g) => g.members)
+      .filter((id) => id !== user.id);
+    if (memberIds.length) {
+      await supabase.rpc("notify_users", {
+        _user_ids: Array.from(new Set(memberIds)),
+        _type: "invite",
+        _title: "New event in your circle",
+        _body: `${user.name} created "${eventData.title}"`,
+        _event_id: eventId,
+      });
+    }
+
     await supabase.from("messages").insert({
       event_id: eventId, sender_id: user.id, message_type: "system",
       content: `Welcome to ${eventData.title}! 🎉 This is your collaboration space.`,
     });
 
-    toast.success("Event created");
+    toast.success("Event created successfully!");
+    await loadAll();
+    return true;
+  };
+
+  const updateEvent = async (eventId: string, patch: Partial<EventItem>): Promise<boolean> => {
+    if (!user) return false;
+    const ev = events.find((e) => e.id === eventId);
+    if (!ev) return false;
+    const dbPatch: any = {};
+    const changes: string[] = [];
+    if (patch.title !== undefined && patch.title !== ev.title) { dbPatch.title = patch.title; changes.push("title"); }
+    if (patch.description !== undefined && patch.description !== ev.description) dbPatch.description = patch.description;
+    if (patch.location !== undefined && patch.location !== ev.location) { dbPatch.location = patch.location; changes.push("location"); }
+    if (patch.latitude !== undefined) dbPatch.latitude = patch.latitude;
+    if (patch.longitude !== undefined) dbPatch.longitude = patch.longitude;
+    if (patch.date !== undefined && patch.date !== ev.date) { dbPatch.start_date = patch.date; changes.push("date"); }
+    if (patch.endDate !== undefined) dbPatch.end_date = patch.endDate || null;
+    if (patch.time !== undefined && patch.time !== ev.time) { dbPatch.start_time = patch.time; changes.push("time"); }
+    if (patch.coverImage !== undefined) dbPatch.cover_image = patch.coverImage;
+    if (patch.tags !== undefined) dbPatch.tags = patch.tags;
+    if (patch.circleGroups !== undefined) { dbPatch.circle_group_ids = patch.circleGroups; changes.push("circles"); }
+    if (patch.participantLimit !== undefined) dbPatch.participant_limit = patch.participantLimit;
+    if (patch.privacy !== undefined) dbPatch.privacy = patch.privacy;
+    if (patch.isOnline !== undefined) dbPatch.is_online = patch.isOnline;
+    if (patch.onlineUrl !== undefined) dbPatch.online_url = patch.onlineUrl || null;
+    const { error } = await supabase.from("events").update(dbPatch).eq("id", eventId);
+    if (error) { toast.error(error.message); return false; }
+    // Notify participants of changes
+    if (changes.length) {
+      const recipients = ev.participants.map((p) => p.id).filter((id) => id !== user.id);
+      if (recipients.length) {
+        await supabase.rpc("notify_users", {
+          _user_ids: recipients,
+          _type: "event_update",
+          _title: `Event updated: ${patch.title || ev.title}`,
+          _body: `Changed: ${changes.join(", ")}`,
+          _event_id: eventId,
+        });
+      }
+    }
+    toast.success("Event updated");
+    await loadAll();
+    return true;
+  };
+
+  const deleteEvent = async (eventId: string): Promise<boolean> => {
+    if (!user) return false;
+    const ev = events.find((e) => e.id === eventId);
+    const { error } = await supabase.from("events").delete().eq("id", eventId);
+    if (error) { toast.error(error.message); return false; }
+    if (ev) {
+      const recipients = ev.participants.map((p) => p.id).filter((id) => id !== user.id);
+      if (recipients.length) {
+        await supabase.rpc("notify_users", {
+          _user_ids: recipients,
+          _type: "event_update",
+          _title: "Event cancelled",
+          _body: `${ev.title} was cancelled by the organizer`,
+          _event_id: eventId,
+        });
+      }
+    }
+    toast.success("Event deleted");
     await loadAll();
     return true;
   };
 
   // ====== CIRCLES ======
-  const addCircleGroup = async (name: string, emoji: string) => {
+  const addCircleGroup = async (name: string, emoji: string, description?: string, avatarUrl?: string) => {
     if (!user) return;
     const { data: g, error } = await supabase.from("circle_groups")
-      .insert({ name, emoji, created_by: user.id }).select().single();
+      .insert({ name, emoji, created_by: user.id, description: description || null, avatar_url: avatarUrl || null } as any)
+      .select().single();
     if (error || !g) { toast.error(error?.message || "Failed"); return; }
     await supabase.from("circle_members").insert({ circle_id: g.id, user_id: user.id });
     await loadAll();
+  };
+
+  const updateCircleGroup = async (id: string, patch: { name?: string; emoji?: string; description?: string; avatarUrl?: string }) => {
+    const dbPatch: any = {};
+    if (patch.name !== undefined) dbPatch.name = patch.name;
+    if (patch.emoji !== undefined) dbPatch.emoji = patch.emoji;
+    if (patch.description !== undefined) dbPatch.description = patch.description || null;
+    if (patch.avatarUrl !== undefined) dbPatch.avatar_url = patch.avatarUrl || null;
+    const { error } = await supabase.from("circle_groups").update(dbPatch).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    await loadAll();
+  };
+
+  const uploadCircleAvatar = async (file: File): Promise<string | null> => {
+    if (!user) return null;
+    const ext = file.name.split(".").pop() || "png";
+    const path = `${user.id}/circles/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (error) { toast.error(error.message); return null; }
+    return supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
   };
 
   const removeCircleGroup = async (id: string) => {
