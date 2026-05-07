@@ -351,6 +351,29 @@ const ProfileScreen = () => {
 
           {manageCircle && (
             <div className="space-y-5">
+              {/* Avatar + description */}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => editCircleAvatarRef.current?.click()}
+                  className="w-14 h-14 rounded-full bg-secondary overflow-hidden flex items-center justify-center text-xl"
+                >
+                  {manageCircle.avatarUrl
+                    ? <img src={manageCircle.avatarUrl} alt="" className="w-full h-full object-cover" />
+                    : <span>{manageCircle.emoji}</span>}
+                </button>
+                <input ref={editCircleAvatarRef} type="file" accept="image/*" hidden onChange={handleEditCircleAvatar} />
+                <div className="flex-1">
+                  <Input
+                    placeholder="Short description (e.g., MIT CS '24)"
+                    value={editCircleDesc}
+                    onChange={(e) => setEditCircleDesc(e.target.value)}
+                    onBlur={saveCircleDesc}
+                    className="h-9 rounded-xl bg-secondary border-0 text-sm"
+                  />
+                </div>
+              </div>
+
               {/* Members */}
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Members ({manageCircle.members.length})</p>
