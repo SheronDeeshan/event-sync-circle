@@ -1,8 +1,14 @@
 import { useState } from "react";
-import { ArrowLeft, MapPin, Calendar, Users, Clock, Shield, Share2, CalendarRange, Check, X, MessageCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Users, Clock, Shield, Share2, CalendarRange, Check, X, MessageCircle, Trash2, Edit2, ExternalLink, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/contexts/AppContext";
 import { type EventItem } from "@/lib/mock-data";
+import { toast } from "sonner";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import EditEventDialog from "@/components/EditEventDialog";
 import eventHike from "@/assets/event-hike.jpg";
 import eventBeach from "@/assets/event-beach.jpg";
 import eventMusic from "@/assets/event-music.jpg";
