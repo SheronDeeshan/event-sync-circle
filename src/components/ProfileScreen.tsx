@@ -193,10 +193,28 @@ const ProfileScreen = () => {
 
           {showAddCircle && (
             <div className="p-4 rounded-xl bg-card shadow-card mb-3 space-y-3">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => circleAvatarRef.current?.click()}
+                  className="w-14 h-14 rounded-full bg-secondary overflow-hidden flex items-center justify-center text-xl border border-dashed border-border"
+                >
+                  {newCircleAvatar
+                    ? <img src={newCircleAvatar} alt="" className="w-full h-full object-cover" />
+                    : <Camera size={18} className="text-muted-foreground" />}
+                </button>
+                <input ref={circleAvatarRef} type="file" accept="image/*" hidden onChange={handleNewCircleAvatar} />
+                <Input
+                  placeholder="Circle name (e.g., Uni Friends)"
+                  value={newCircleName}
+                  onChange={(e) => setNewCircleName(e.target.value)}
+                  className="h-10 rounded-xl bg-secondary border-0 flex-1"
+                />
+              </div>
               <Input
-                placeholder="Circle name (e.g., Uni Friends)"
-                value={newCircleName}
-                onChange={(e) => setNewCircleName(e.target.value)}
+                placeholder="Short description (e.g., MIT CS '24, work team)"
+                value={newCircleDesc}
+                onChange={(e) => setNewCircleDesc(e.target.value)}
                 className="h-10 rounded-xl bg-secondary border-0"
               />
               <div>
@@ -216,15 +234,31 @@ const ProfileScreen = () => {
             </div>
           )}
 
+          {myCircles.length > 3 && (
+            <Input
+              placeholder="Search circles…"
+              value={circleSearch}
+              onChange={(e) => setCircleSearch(e.target.value)}
+              className="h-10 rounded-xl bg-secondary border-0 mb-2"
+            />
+          )}
+
           <div className="space-y-2">
-            {myCircles.map((group) => (
+            {myCircles
+              .filter((g) => !circleSearch || g.name.toLowerCase().includes(circleSearch.toLowerCase()) || (g.description || "").toLowerCase().includes(circleSearch.toLowerCase()))
+              .map((group) => (
               <div key={group.id} className="flex items-center gap-3 p-3 rounded-xl bg-card shadow-card">
-                <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg">{group.emoji}</div>
-                <button className="flex-1 min-w-0 text-left" onClick={() => setManageCircleId(group.id)}>
-                  <p className="text-sm font-medium text-card-foreground">{group.name}</p>
-                  <p className="text-xs text-muted-foreground">{group.members.length} member{group.members.length === 1 ? "" : "s"}</p>
+                <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg overflow-hidden">
+                  {group.avatarUrl
+                    ? <img src={group.avatarUrl} alt="" className="w-full h-full object-cover" />
+                    : <span>{group.emoji}</span>}
+                </div>
+                <button className="flex-1 min-w-0 text-left" onClick={() => { setManageCircleId(group.id); setEditCircleDesc(group.description || ""); }}>
+                  <p className="text-sm font-medium text-card-foreground truncate">{group.name}</p>
+                  {group.description && <p className="text-xs text-muted-foreground truncate">{group.description}</p>}
+                  <p className="text-[11px] text-muted-foreground">{group.members.length} member{group.members.length === 1 ? "" : "s"}</p>
                 </button>
-                <button onClick={() => setManageCircleId(group.id)}
+                <button onClick={() => { setManageCircleId(group.id); setEditCircleDesc(group.description || ""); }}
                   className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary">
                   <UserPlus size={14} />
                 </button>
