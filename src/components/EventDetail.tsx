@@ -28,7 +28,26 @@ interface EventDetailProps {
 }
 
 const EventDetail = ({ event, onBack, onJoinSpace }: EventDetailProps) => {
-  const { user, joinEvent, requestJoinEvent, handleJoinRequest, circleGroups, profiles } = useApp();
+  const { user, joinEvent, requestJoinEvent, handleJoinRequest, circleGroups, profiles, deleteEvent } = useApp();
+  const [showDelete, setShowDelete] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/?event=${event.id}`;
+    const text = `Check out "${event.title}" on Circle: ${url}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: event.title, text, url }); return; } catch { /* cancelled */ }
+    }
+    await navigator.clipboard.writeText(url);
+    toast.success("Event link copied");
+  };
+
+  const handleDelete = async () => {
+    const ok = await deleteEvent(event.id);
+    setShowDelete(false);
+    if (ok) onBack();
+  };
+
   const image = eventImages[event.id] || eventHike;
   const isJoined = user ? event.participants.some((p) => p.id === user.id) : false;
   const isFull = event.participants.length >= event.participantLimit;
