@@ -40,7 +40,11 @@ interface AppContextType {
   requestJoinEvent: (eventId: string, message?: string) => Promise<void>;
   handleJoinRequest: (eventId: string, requestId: string, status: JoinRequestStatus) => Promise<void>;
   createEvent: (event: Omit<EventItem, "id" | "participants" | "organizer" | "status" | "joinRequests">) => Promise<boolean>;
-  addCircleGroup: (name: string, emoji: string) => Promise<void>;
+  updateEvent: (eventId: string, patch: Partial<EventItem>) => Promise<boolean>;
+  deleteEvent: (eventId: string) => Promise<boolean>;
+  addCircleGroup: (name: string, emoji: string, description?: string, avatarUrl?: string) => Promise<void>;
+  updateCircleGroup: (id: string, patch: { name?: string; emoji?: string; description?: string; avatarUrl?: string }) => Promise<void>;
+  uploadCircleAvatar: (file: File) => Promise<string | null>;
   removeCircleGroup: (id: string) => Promise<void>;
   updateUserInterests: (interests: string[]) => Promise<void>;
   sendMessage: (eventId: string, content: string, imageUrl?: string) => Promise<void>;
