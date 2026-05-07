@@ -3,6 +3,7 @@ import { AppProvider, useApp } from "@/contexts/AppContext";
 import AuthScreen from "@/components/AuthScreen";
 import HomeFeed from "@/components/HomeFeed";
 import DiscoverScreen from "@/components/DiscoverScreen";
+import JoinedSpaces from "@/components/JoinedSpaces";
 import EventDetail from "@/components/EventDetail";
 import CollaborationSpace from "@/components/CollaborationSpace";
 import CreateEvent from "@/components/CreateEvent";
@@ -10,7 +11,7 @@ import ProfileScreen from "@/components/ProfileScreen";
 import NotificationsScreen from "@/components/NotificationsScreen";
 import BottomNav from "@/components/BottomNav";
 
-type Screen = "home" | "discover" | "create" | "notifications" | "profile" | "event-detail" | "collaboration";
+type Screen = "home" | "discover" | "joined" | "create" | "notifications" | "profile" | "event-detail" | "collaboration";
 
 const AppContent = () => {
   const { isAuthenticated, loading, events, notifications } = useApp();
