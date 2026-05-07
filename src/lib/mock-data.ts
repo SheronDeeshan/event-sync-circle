@@ -57,6 +57,8 @@ export interface EventItem {
   transportInfo?: string;
   weatherAlertsEnabled?: boolean;
   createdAt?: string;
+  isOnline?: boolean;
+  onlineUrl?: string;
 }
 
 export interface Message {
