@@ -38,7 +38,7 @@ const AppContent = () => {
     return (
       <CollaborationSpace
         event={selectedEvent}
-        onBack={() => setScreen("event-detail")}
+        onBack={() => setScreen(collabFrom)}
       />
     );
   }
