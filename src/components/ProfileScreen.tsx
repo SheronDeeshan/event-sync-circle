@@ -45,12 +45,35 @@ const ProfileScreen = () => {
   const myCircles = circleGroups.filter((g) => g.createdBy === user.id);
   const manageCircle = circleGroups.find((c) => c.id === manageCircleId);
 
-  const handleAddCircle = () => {
+  const handleAddCircle = async () => {
     if (!newCircleName.trim()) return;
-    addCircleGroup(newCircleName, newCircleEmoji);
+    await addCircleGroup(newCircleName, newCircleEmoji, newCircleDesc || undefined, newCircleAvatar || undefined);
     setNewCircleName("");
     setNewCircleEmoji("🎓");
+    setNewCircleDesc("");
+    setNewCircleAvatar("");
     setShowAddCircle(false);
+  };
+
+  const handleNewCircleAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const url = await uploadCircleAvatar(f);
+    if (url) setNewCircleAvatar(url);
+    e.target.value = "";
+  };
+
+  const handleEditCircleAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f || !manageCircle) return;
+    const url = await uploadCircleAvatar(f);
+    if (url) await updateCircleGroup(manageCircle.id, { avatarUrl: url });
+    e.target.value = "";
+  };
+
+  const saveCircleDesc = async () => {
+    if (!manageCircle) return;
+    await updateCircleGroup(manageCircle.id, { description: editCircleDesc });
   };
 
   const startEditInterests = () => {
