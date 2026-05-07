@@ -259,11 +259,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       membersByCircle[m.circle_id].push(m.user_id);
     });
     setCircleGroups(
-      (circlesRes.data || []).map((g) => ({
+      (circlesRes.data || []).map((g: any) => ({
         id: g.id, name: g.name, emoji: g.emoji,
         memberCount: (membersByCircle[g.id] || []).length,
         members: membersByCircle[g.id] || [],
         createdBy: g.created_by,
+        description: g.description || undefined,
+        avatarUrl: g.avatar_url || undefined,
       }))
     );
 
