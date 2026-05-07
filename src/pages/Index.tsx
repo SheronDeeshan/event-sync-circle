@@ -73,6 +73,9 @@ const AppContent = () => {
         {screen === "discover" && (
           <DiscoverScreen onEventClick={navigateToEvent} />
         )}
+        {screen === "joined" && (
+          <JoinedSpaces onOpenSpace={(id) => { setSelectedEventId(id); setScreen("collaboration"); }} />
+        )}
         {screen === "notifications" && (
           <NotificationsScreen onEventClick={navigateToEvent} />
         )}
