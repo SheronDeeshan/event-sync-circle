@@ -220,6 +220,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         importedFrom: e.imported_from as any,
         transportInfo: (e as any).transport_info || undefined,
         weatherAlertsEnabled: (e as any).weather_alerts_enabled || false,
+        isOnline: (e as any).is_online || false,
+        onlineUrl: (e as any).online_url || undefined,
         createdAt: e.created_at,
         joinRequests: (reqsByEvent[e.id] || []).map((r) => ({
           id: r.id,
