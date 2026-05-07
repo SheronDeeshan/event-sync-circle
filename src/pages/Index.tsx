@@ -3,6 +3,7 @@ import { AppProvider, useApp } from "@/contexts/AppContext";
 import AuthScreen from "@/components/AuthScreen";
 import HomeFeed from "@/components/HomeFeed";
 import DiscoverScreen from "@/components/DiscoverScreen";
+import JoinedSpaces from "@/components/JoinedSpaces";
 import EventDetail from "@/components/EventDetail";
 import CollaborationSpace from "@/components/CollaborationSpace";
 import CreateEvent from "@/components/CreateEvent";
@@ -10,12 +11,13 @@ import ProfileScreen from "@/components/ProfileScreen";
 import NotificationsScreen from "@/components/NotificationsScreen";
 import BottomNav from "@/components/BottomNav";
 
-type Screen = "home" | "discover" | "create" | "notifications" | "profile" | "event-detail" | "collaboration";
+type Screen = "home" | "discover" | "joined" | "create" | "notifications" | "profile" | "event-detail" | "collaboration";
 
 const AppContent = () => {
   const { isAuthenticated, loading, events, notifications } = useApp();
   const [screen, setScreen] = useState<Screen>("home");
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [collabFrom, setCollabFrom] = useState<Screen>("event-detail");
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground text-sm">Loading…</div>;
@@ -36,7 +38,7 @@ const AppContent = () => {
     return (
       <CollaborationSpace
         event={selectedEvent}
-        onBack={() => setScreen("event-detail")}
+        onBack={() => setScreen(collabFrom)}
       />
     );
   }
@@ -47,7 +49,7 @@ const AppContent = () => {
         <EventDetail
           event={selectedEvent}
           onBack={() => { setScreen("home"); setSelectedEventId(null); }}
-          onJoinSpace={() => setScreen("collaboration")}
+          onJoinSpace={() => { setCollabFrom("event-detail"); setScreen("collaboration"); }}
         />
         <BottomNav active="" onNavigate={(tab) => { setScreen(tab as Screen); setSelectedEventId(null); }} unreadNotifications={unreadCount} />
       </>
@@ -71,6 +73,9 @@ const AppContent = () => {
         )}
         {screen === "discover" && (
           <DiscoverScreen onEventClick={navigateToEvent} />
+        )}
+        {screen === "joined" && (
+          <JoinedSpaces onOpenSpace={(id) => { setSelectedEventId(id); setCollabFrom("joined"); setScreen("collaboration"); }} />
         )}
         {screen === "notifications" && (
           <NotificationsScreen onEventClick={navigateToEvent} />

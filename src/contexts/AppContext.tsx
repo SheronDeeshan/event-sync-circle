@@ -40,7 +40,11 @@ interface AppContextType {
   requestJoinEvent: (eventId: string, message?: string) => Promise<void>;
   handleJoinRequest: (eventId: string, requestId: string, status: JoinRequestStatus) => Promise<void>;
   createEvent: (event: Omit<EventItem, "id" | "participants" | "organizer" | "status" | "joinRequests">) => Promise<boolean>;
-  addCircleGroup: (name: string, emoji: string) => Promise<void>;
+  updateEvent: (eventId: string, patch: Partial<EventItem>) => Promise<boolean>;
+  deleteEvent: (eventId: string) => Promise<boolean>;
+  addCircleGroup: (name: string, emoji: string, description?: string, avatarUrl?: string) => Promise<void>;
+  updateCircleGroup: (id: string, patch: { name?: string; emoji?: string; description?: string; avatarUrl?: string }) => Promise<void>;
+  uploadCircleAvatar: (file: File) => Promise<string | null>;
   removeCircleGroup: (id: string) => Promise<void>;
   updateUserInterests: (interests: string[]) => Promise<void>;
   sendMessage: (eventId: string, content: string, imageUrl?: string) => Promise<void>;
@@ -216,6 +220,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         importedFrom: e.imported_from as any,
         transportInfo: (e as any).transport_info || undefined,
         weatherAlertsEnabled: (e as any).weather_alerts_enabled || false,
+        isOnline: (e as any).is_online || false,
+        onlineUrl: (e as any).online_url || undefined,
         createdAt: e.created_at,
         joinRequests: (reqsByEvent[e.id] || []).map((r) => ({
           id: r.id,
@@ -253,11 +259,13 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       membersByCircle[m.circle_id].push(m.user_id);
     });
     setCircleGroups(
-      (circlesRes.data || []).map((g) => ({
+      (circlesRes.data || []).map((g: any) => ({
         id: g.id, name: g.name, emoji: g.emoji,
         memberCount: (membersByCircle[g.id] || []).length,
         members: membersByCircle[g.id] || [],
         createdBy: g.created_by,
+        description: g.description || undefined,
+        avatarUrl: g.avatar_url || undefined,
       }))
     );
 
@@ -421,14 +429,21 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     const { error } = await supabase.from("event_participants").insert({ event_id: eventId, user_id: user.id });
     if (error) { toast.error(error.message); return; }
     const ev = events.find((e) => e.id === eventId);
-    if (ev && ev.organizer.id !== user.id && !ev.organizer.isAnonymous) {
-      await supabase.from("notifications").insert({
-        user_id: ev.organizer.id,
-        type: "event_update",
-        title: "Someone joined your event",
-        body: `${user.name} joined ${ev.title}`,
-        event_id: eventId,
-      });
+    if (ev) {
+      // Notify organizer + existing participants (excluding self)
+      const recipients = Array.from(new Set([
+        ev.organizer.id,
+        ...ev.participants.map((p) => p.id),
+      ])).filter((id) => id && id !== user.id && id !== "anonymous");
+      if (recipients.length) {
+        await supabase.rpc("notify_users", {
+          _user_ids: recipients,
+          _type: "event_update",
+          _title: "New member joined",
+          _body: `${user.name} joined ${ev.title}`,
+          _event_id: eventId,
+        });
+      }
     }
     toast.success("Joined event");
     await loadAll();
@@ -480,6 +495,16 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const createEvent = async (eventData: Omit<EventItem, "id" | "participants" | "organizer" | "status" | "joinRequests">) => {
     if (!user) return false;
+    // Duplicate check (same organizer, title (case-insensitive), start date)
+    const dupe = events.find((e) =>
+      e.organizer.id === user.id &&
+      e.title.trim().toLowerCase() === eventData.title.trim().toLowerCase() &&
+      e.date === eventData.date
+    );
+    if (dupe) {
+      toast.error("You already have an event with this title on that date");
+      return false;
+    }
     const eventId = crypto.randomUUID();
     const { error } = await supabase.from("events").insert({
       id: eventId,
@@ -500,9 +525,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       private_rule: eventData.privateRule || "any",
       transport_info: eventData.transportInfo || null,
       weather_alerts_enabled: eventData.weatherAlertsEnabled || false,
+      is_online: eventData.isOnline || false,
+      online_url: eventData.onlineUrl || null,
       imported_from: eventData.importedFrom || null,
     } as any);
-    if (error) { toast.error(error.message || "Failed to create event"); return false; }
+    if (error) {
+      const msg = /duplicate|unique/i.test(error.message)
+        ? "You already have an event with this title on that date"
+        : (error.message || "Failed to create event");
+      toast.error(msg);
+      return false;
+    }
 
     if (eventData.anonymousInvites?.length) {
       await supabase.from("anonymous_invites").insert(
@@ -518,24 +551,123 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       );
     }
 
+    // Notify circle members of new event
+    const memberIds = circleGroups
+      .filter((g) => eventData.circleGroups.includes(g.id))
+      .flatMap((g) => g.members)
+      .filter((id) => id !== user.id);
+    if (memberIds.length) {
+      await supabase.rpc("notify_users", {
+        _user_ids: Array.from(new Set(memberIds)),
+        _type: "invite",
+        _title: "New event in your circle",
+        _body: `${user.name} created "${eventData.title}"`,
+        _event_id: eventId,
+      });
+    }
+
     await supabase.from("messages").insert({
       event_id: eventId, sender_id: user.id, message_type: "system",
       content: `Welcome to ${eventData.title}! 🎉 This is your collaboration space.`,
     });
 
-    toast.success("Event created");
+    toast.success("Event created successfully!");
+    await loadAll();
+    return true;
+  };
+
+  const updateEvent = async (eventId: string, patch: Partial<EventItem>): Promise<boolean> => {
+    if (!user) return false;
+    const ev = events.find((e) => e.id === eventId);
+    if (!ev) return false;
+    const dbPatch: any = {};
+    const changes: string[] = [];
+    if (patch.title !== undefined && patch.title !== ev.title) { dbPatch.title = patch.title; changes.push("title"); }
+    if (patch.description !== undefined && patch.description !== ev.description) dbPatch.description = patch.description;
+    if (patch.location !== undefined && patch.location !== ev.location) { dbPatch.location = patch.location; changes.push("location"); }
+    if (patch.latitude !== undefined) dbPatch.latitude = patch.latitude;
+    if (patch.longitude !== undefined) dbPatch.longitude = patch.longitude;
+    if (patch.date !== undefined && patch.date !== ev.date) { dbPatch.start_date = patch.date; changes.push("date"); }
+    if (patch.endDate !== undefined) dbPatch.end_date = patch.endDate || null;
+    if (patch.time !== undefined && patch.time !== ev.time) { dbPatch.start_time = patch.time; changes.push("time"); }
+    if (patch.coverImage !== undefined) dbPatch.cover_image = patch.coverImage;
+    if (patch.tags !== undefined) dbPatch.tags = patch.tags;
+    if (patch.circleGroups !== undefined) { dbPatch.circle_group_ids = patch.circleGroups; changes.push("circles"); }
+    if (patch.participantLimit !== undefined) dbPatch.participant_limit = patch.participantLimit;
+    if (patch.privacy !== undefined) dbPatch.privacy = patch.privacy;
+    if (patch.isOnline !== undefined) dbPatch.is_online = patch.isOnline;
+    if (patch.onlineUrl !== undefined) dbPatch.online_url = patch.onlineUrl || null;
+    const { error } = await supabase.from("events").update(dbPatch).eq("id", eventId);
+    if (error) { toast.error(error.message); return false; }
+    // Notify participants of changes
+    if (changes.length) {
+      const recipients = ev.participants.map((p) => p.id).filter((id) => id !== user.id);
+      if (recipients.length) {
+        await supabase.rpc("notify_users", {
+          _user_ids: recipients,
+          _type: "event_update",
+          _title: `Event updated: ${patch.title || ev.title}`,
+          _body: `Changed: ${changes.join(", ")}`,
+          _event_id: eventId,
+        });
+      }
+    }
+    toast.success("Event updated");
+    await loadAll();
+    return true;
+  };
+
+  const deleteEvent = async (eventId: string): Promise<boolean> => {
+    if (!user) return false;
+    const ev = events.find((e) => e.id === eventId);
+    const { error } = await supabase.from("events").delete().eq("id", eventId);
+    if (error) { toast.error(error.message); return false; }
+    if (ev) {
+      const recipients = ev.participants.map((p) => p.id).filter((id) => id !== user.id);
+      if (recipients.length) {
+        await supabase.rpc("notify_users", {
+          _user_ids: recipients,
+          _type: "event_update",
+          _title: "Event cancelled",
+          _body: `${ev.title} was cancelled by the organizer`,
+          _event_id: eventId,
+        });
+      }
+    }
+    toast.success("Event deleted");
     await loadAll();
     return true;
   };
 
   // ====== CIRCLES ======
-  const addCircleGroup = async (name: string, emoji: string) => {
+  const addCircleGroup = async (name: string, emoji: string, description?: string, avatarUrl?: string) => {
     if (!user) return;
     const { data: g, error } = await supabase.from("circle_groups")
-      .insert({ name, emoji, created_by: user.id }).select().single();
+      .insert({ name, emoji, created_by: user.id, description: description || null, avatar_url: avatarUrl || null } as any)
+      .select().single();
     if (error || !g) { toast.error(error?.message || "Failed"); return; }
     await supabase.from("circle_members").insert({ circle_id: g.id, user_id: user.id });
     await loadAll();
+  };
+
+  const updateCircleGroup = async (id: string, patch: { name?: string; emoji?: string; description?: string; avatarUrl?: string }) => {
+    const dbPatch: any = {};
+    if (patch.name !== undefined) dbPatch.name = patch.name;
+    if (patch.emoji !== undefined) dbPatch.emoji = patch.emoji;
+    if (patch.description !== undefined) dbPatch.description = patch.description || null;
+    if (patch.avatarUrl !== undefined) dbPatch.avatar_url = patch.avatarUrl || null;
+    const { error } = await supabase.from("circle_groups").update(dbPatch).eq("id", id);
+    if (error) { toast.error(error.message); return; }
+    await loadAll();
+  };
+
+  const uploadCircleAvatar = async (file: File): Promise<string | null> => {
+    if (!user) return null;
+    const ext = file.name.split(".").pop() || "png";
+    const path = `${user.id}/circles/${Date.now()}.${ext}`;
+    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (error) { toast.error(error.message); return null; }
+    return supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
   };
 
   const removeCircleGroup = async (id: string) => {
@@ -569,6 +701,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         category: expense.category,
       }],
     }));
+    // Notify other participants of budget change
+    const ev = events.find((e) => e.id === eventId);
+    if (ev) {
+      const recipients = ev.participants.map((p) => p.id).filter((id) => id !== user.id);
+      if (recipients.length) {
+        await supabase.rpc("notify_users", {
+          _user_ids: recipients,
+          _type: "expense",
+          _title: "Budget updated",
+          _body: `${user.name} added "${expense.title}" ($${expense.amount}) to ${ev.title}`,
+          _event_id: eventId,
+        });
+      }
+    }
   };
 
   const markNotificationRead = async (id: string) => {
@@ -577,6 +723,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // ====== CHAT / EXPENSES ======
+  const lastChatNotifAt = React.useRef<Record<string, number>>({});
   const sendMessage = async (eventId: string, content: string, imageUrl?: string) => {
     if (!user) return;
     const { error } = await supabase.from("messages").insert({
@@ -585,7 +732,26 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       content: imageUrl || content,
       message_type: imageUrl ? "image" : "user",
     });
-    if (error) toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
+    // Throttled chat notification: at most once per 2 min per event
+    const now = Date.now();
+    const last = lastChatNotifAt.current[eventId] || 0;
+    if (now - last > 2 * 60 * 1000) {
+      lastChatNotifAt.current[eventId] = now;
+      const ev = events.find((e) => e.id === eventId);
+      if (ev) {
+        const recipients = ev.participants.map((p) => p.id).filter((id) => id !== user.id);
+        if (recipients.length) {
+          await supabase.rpc("notify_users", {
+            _user_ids: recipients,
+            _type: "chat",
+            _title: `New messages in ${ev.title}`,
+            _body: `${user.name}: ${(content || "📷 Photo").slice(0, 80)}`,
+            _event_id: eventId,
+          });
+        }
+      }
+    }
   };
 
   const uploadChatImage = async (eventId: string, file: File): Promise<string | null> => {
@@ -771,8 +937,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       profiles: Object.values(profilesCache),
       stories, eventAlerts, eventPhotos, reactions, pinnedMessageIds,
       login, signup, logout, setSelectedInterests,
-      joinEvent, requestJoinEvent, handleJoinRequest, createEvent,
-      addCircleGroup, removeCircleGroup, updateUserInterests,
+      joinEvent, requestJoinEvent, handleJoinRequest, createEvent, updateEvent, deleteEvent,
+      addCircleGroup, updateCircleGroup, uploadCircleAvatar, removeCircleGroup, updateUserInterests,
       sendMessage, uploadChatImage, toggleReaction, togglePin,
       addExpense, markNotificationRead,
       updateUserProfile, uploadAvatar,

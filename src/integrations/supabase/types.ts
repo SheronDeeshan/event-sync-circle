@@ -45,22 +45,28 @@ export type Database = {
       }
       circle_groups: {
         Row: {
+          avatar_url: string | null
           created_at: string
           created_by: string
+          description: string | null
           emoji: string
           id: string
           name: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           created_by: string
+          description?: string | null
           emoji?: string
           id?: string
           name: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           created_by?: string
+          description?: string | null
           emoji?: string
           id?: string
           name?: string
@@ -235,9 +241,11 @@ export type Database = {
           end_date: string | null
           id: string
           imported_from: string | null
+          is_online: boolean
           latitude: number | null
           location: string
           longitude: number | null
+          online_url: string | null
           organizer_id: string
           participant_limit: number
           privacy: Database["public"]["Enums"]["event_privacy"]
@@ -259,9 +267,11 @@ export type Database = {
           end_date?: string | null
           id?: string
           imported_from?: string | null
+          is_online?: boolean
           latitude?: number | null
           location?: string
           longitude?: number | null
+          online_url?: string | null
           organizer_id: string
           participant_limit?: number
           privacy?: Database["public"]["Enums"]["event_privacy"]
@@ -283,9 +293,11 @@ export type Database = {
           end_date?: string | null
           id?: string
           imported_from?: string | null
+          is_online?: boolean
           latitude?: number | null
           location?: string
           longitude?: number | null
+          online_url?: string | null
           organizer_id?: string
           participant_limit?: number
           privacy?: Database["public"]["Enums"]["event_privacy"]
@@ -605,6 +617,16 @@ export type Database = {
       is_event_participant: {
         Args: { _event_id: string; _user_id: string }
         Returns: boolean
+      }
+      notify_users: {
+        Args: {
+          _body: string
+          _event_id: string
+          _title: string
+          _type: string
+          _user_ids: string[]
+        }
+        Returns: undefined
       }
       shares_circle: { Args: { _a: string; _b: string }; Returns: boolean }
     }

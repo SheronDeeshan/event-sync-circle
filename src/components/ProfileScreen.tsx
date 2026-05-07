@@ -15,22 +15,29 @@ const ProfileScreen = () => {
     user, logout, circleGroups, addCircleGroup, removeCircleGroup,
     updateUserInterests, events, profiles,
     updateUserProfile, uploadAvatar,
+    updateCircleGroup, uploadCircleAvatar,
     addCircleMember, removeCircleMember, createCircleInvite,
   } = useApp();
 
   const [showAddCircle, setShowAddCircle] = useState(false);
   const [newCircleName, setNewCircleName] = useState("");
   const [newCircleEmoji, setNewCircleEmoji] = useState("🎓");
+  const [newCircleDesc, setNewCircleDesc] = useState("");
+  const [newCircleAvatar, setNewCircleAvatar] = useState("");
+  const [circleSearch, setCircleSearch] = useState("");
   const [editingInterests, setEditingInterests] = useState(false);
   const [tempInterests, setTempInterests] = useState<string[]>([]);
   const [editingProfile, setEditingProfile] = useState(false);
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
   const [manageCircleId, setManageCircleId] = useState<string | null>(null);
+  const [editCircleDesc, setEditCircleDesc] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitePhone, setInvitePhone] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const circleAvatarRef = useRef<HTMLInputElement>(null);
+  const editCircleAvatarRef = useRef<HTMLInputElement>(null);
 
   if (!user) return null;
 
@@ -38,12 +45,35 @@ const ProfileScreen = () => {
   const myCircles = circleGroups.filter((g) => g.createdBy === user.id);
   const manageCircle = circleGroups.find((c) => c.id === manageCircleId);
 
-  const handleAddCircle = () => {
+  const handleAddCircle = async () => {
     if (!newCircleName.trim()) return;
-    addCircleGroup(newCircleName, newCircleEmoji);
+    await addCircleGroup(newCircleName, newCircleEmoji, newCircleDesc || undefined, newCircleAvatar || undefined);
     setNewCircleName("");
     setNewCircleEmoji("🎓");
+    setNewCircleDesc("");
+    setNewCircleAvatar("");
     setShowAddCircle(false);
+  };
+
+  const handleNewCircleAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const url = await uploadCircleAvatar(f);
+    if (url) setNewCircleAvatar(url);
+    e.target.value = "";
+  };
+
+  const handleEditCircleAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f || !manageCircle) return;
+    const url = await uploadCircleAvatar(f);
+    if (url) await updateCircleGroup(manageCircle.id, { avatarUrl: url });
+    e.target.value = "";
+  };
+
+  const saveCircleDesc = async () => {
+    if (!manageCircle) return;
+    await updateCircleGroup(manageCircle.id, { description: editCircleDesc });
   };
 
   const startEditInterests = () => {
@@ -142,7 +172,7 @@ const ProfileScreen = () => {
           {[
             { label: "Events", value: String(myEvents.length) },
             { label: "Circles", value: String(myCircles.length) },
-            { label: "Friends", value: String(new Set(myCircles.flatMap((c) => c.members)).size) },
+            { label: "Friends", value: String(Math.max(0, new Set(myCircles.flatMap((c) => c.members)).size - 1)) },
           ].map(({ label, value }) => (
             <div key={label} className="bg-card rounded-2xl p-4 text-center shadow-card">
               <p className="text-2xl font-bold text-foreground">{value}</p>
@@ -163,10 +193,28 @@ const ProfileScreen = () => {
 
           {showAddCircle && (
             <div className="p-4 rounded-xl bg-card shadow-card mb-3 space-y-3">
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => circleAvatarRef.current?.click()}
+                  className="w-14 h-14 rounded-full bg-secondary overflow-hidden flex items-center justify-center text-xl border border-dashed border-border"
+                >
+                  {newCircleAvatar
+                    ? <img src={newCircleAvatar} alt="" className="w-full h-full object-cover" />
+                    : <Camera size={18} className="text-muted-foreground" />}
+                </button>
+                <input ref={circleAvatarRef} type="file" accept="image/*" hidden onChange={handleNewCircleAvatar} />
+                <Input
+                  placeholder="Circle name (e.g., Uni Friends)"
+                  value={newCircleName}
+                  onChange={(e) => setNewCircleName(e.target.value)}
+                  className="h-10 rounded-xl bg-secondary border-0 flex-1"
+                />
+              </div>
               <Input
-                placeholder="Circle name (e.g., Uni Friends)"
-                value={newCircleName}
-                onChange={(e) => setNewCircleName(e.target.value)}
+                placeholder="Short description (e.g., MIT CS '24, work team)"
+                value={newCircleDesc}
+                onChange={(e) => setNewCircleDesc(e.target.value)}
                 className="h-10 rounded-xl bg-secondary border-0"
               />
               <div>
@@ -186,15 +234,31 @@ const ProfileScreen = () => {
             </div>
           )}
 
+          {myCircles.length > 3 && (
+            <Input
+              placeholder="Search circles…"
+              value={circleSearch}
+              onChange={(e) => setCircleSearch(e.target.value)}
+              className="h-10 rounded-xl bg-secondary border-0 mb-2"
+            />
+          )}
+
           <div className="space-y-2">
-            {myCircles.map((group) => (
+            {myCircles
+              .filter((g) => !circleSearch || g.name.toLowerCase().includes(circleSearch.toLowerCase()) || (g.description || "").toLowerCase().includes(circleSearch.toLowerCase()))
+              .map((group) => (
               <div key={group.id} className="flex items-center gap-3 p-3 rounded-xl bg-card shadow-card">
-                <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg">{group.emoji}</div>
-                <button className="flex-1 min-w-0 text-left" onClick={() => setManageCircleId(group.id)}>
-                  <p className="text-sm font-medium text-card-foreground">{group.name}</p>
-                  <p className="text-xs text-muted-foreground">{group.members.length} member{group.members.length === 1 ? "" : "s"}</p>
+                <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-lg overflow-hidden">
+                  {group.avatarUrl
+                    ? <img src={group.avatarUrl} alt="" className="w-full h-full object-cover" />
+                    : <span>{group.emoji}</span>}
+                </div>
+                <button className="flex-1 min-w-0 text-left" onClick={() => { setManageCircleId(group.id); setEditCircleDesc(group.description || ""); }}>
+                  <p className="text-sm font-medium text-card-foreground truncate">{group.name}</p>
+                  {group.description && <p className="text-xs text-muted-foreground truncate">{group.description}</p>}
+                  <p className="text-[11px] text-muted-foreground">{group.members.length} member{group.members.length === 1 ? "" : "s"}</p>
                 </button>
-                <button onClick={() => setManageCircleId(group.id)}
+                <button onClick={() => { setManageCircleId(group.id); setEditCircleDesc(group.description || ""); }}
                   className="p-2 rounded-lg hover:bg-primary/10 text-muted-foreground hover:text-primary">
                   <UserPlus size={14} />
                 </button>
@@ -287,6 +351,29 @@ const ProfileScreen = () => {
 
           {manageCircle && (
             <div className="space-y-5">
+              {/* Avatar + description */}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => editCircleAvatarRef.current?.click()}
+                  className="w-14 h-14 rounded-full bg-secondary overflow-hidden flex items-center justify-center text-xl"
+                >
+                  {manageCircle.avatarUrl
+                    ? <img src={manageCircle.avatarUrl} alt="" className="w-full h-full object-cover" />
+                    : <span>{manageCircle.emoji}</span>}
+                </button>
+                <input ref={editCircleAvatarRef} type="file" accept="image/*" hidden onChange={handleEditCircleAvatar} />
+                <div className="flex-1">
+                  <Input
+                    placeholder="Short description (e.g., MIT CS '24)"
+                    value={editCircleDesc}
+                    onChange={(e) => setEditCircleDesc(e.target.value)}
+                    onBlur={saveCircleDesc}
+                    className="h-9 rounded-xl bg-secondary border-0 text-sm"
+                  />
+                </div>
+              </div>
+
               {/* Members */}
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase mb-2">Members ({manageCircle.members.length})</p>

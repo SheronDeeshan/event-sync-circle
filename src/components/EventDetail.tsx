@@ -1,8 +1,14 @@
 import { useState } from "react";
-import { ArrowLeft, MapPin, Calendar, Users, Clock, Shield, Share2, CalendarRange, Check, X, MessageCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Users, Clock, Shield, Share2, CalendarRange, Check, X, MessageCircle, Trash2, Edit2, ExternalLink, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useApp } from "@/contexts/AppContext";
 import { type EventItem } from "@/lib/mock-data";
+import { toast } from "sonner";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import EditEventDialog from "@/components/EditEventDialog";
 import eventHike from "@/assets/event-hike.jpg";
 import eventBeach from "@/assets/event-beach.jpg";
 import eventMusic from "@/assets/event-music.jpg";
@@ -22,7 +28,26 @@ interface EventDetailProps {
 }
 
 const EventDetail = ({ event, onBack, onJoinSpace }: EventDetailProps) => {
-  const { user, joinEvent, requestJoinEvent, handleJoinRequest, circleGroups, profiles } = useApp();
+  const { user, joinEvent, requestJoinEvent, handleJoinRequest, circleGroups, profiles, deleteEvent } = useApp();
+  const [showDelete, setShowDelete] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/?event=${event.id}`;
+    const text = `Check out "${event.title}" on Circle: ${url}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: event.title, text, url }); return; } catch { /* cancelled */ }
+    }
+    await navigator.clipboard.writeText(url);
+    toast.success("Event link copied");
+  };
+
+  const handleDelete = async () => {
+    const ok = await deleteEvent(event.id);
+    setShowDelete(false);
+    if (ok) onBack();
+  };
+
   const image = eventImages[event.id] || eventHike;
   const isJoined = user ? event.participants.some((p) => p.id === user.id) : false;
   const isFull = event.participants.length >= event.participantLimit;
@@ -54,7 +79,7 @@ const EventDetail = ({ event, onBack, onJoinSpace }: EventDetailProps) => {
     <div className="pb-24 animate-fade-in">
       {/* Hero image */}
       <div className="relative h-64">
-        <img src={image} alt={event.title} className="w-full h-full object-cover" />
+        <img src={event.coverImage || image} alt={event.title} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent" />
         <button
           onClick={onBack}
@@ -66,7 +91,20 @@ const EventDetail = ({ event, onBack, onJoinSpace }: EventDetailProps) => {
           <span className={`px-3 py-1 rounded-full text-[11px] font-medium capitalize ${statusColors[event.status]}`}>
             {event.status}
           </span>
-          <button className="w-10 h-10 rounded-full glass flex items-center justify-center">
+          {isOrganizer && (
+            <>
+              <button onClick={() => setShowEdit(true)} aria-label="Edit event"
+                className="w-10 h-10 rounded-full glass flex items-center justify-center">
+                <Edit2 size={16} className="text-foreground" />
+              </button>
+              <button onClick={() => setShowDelete(true)} aria-label="Delete event"
+                className="w-10 h-10 rounded-full glass flex items-center justify-center">
+                <Trash2 size={16} className="text-destructive" />
+              </button>
+            </>
+          )}
+          <button onClick={handleShare} aria-label="Share event"
+            className="w-10 h-10 rounded-full glass flex items-center justify-center">
             <Share2 size={18} className="text-foreground" />
           </button>
         </div>
@@ -93,8 +131,14 @@ const EventDetail = ({ event, onBack, onJoinSpace }: EventDetailProps) => {
             <span>{event.time}</span>
           </div>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <MapPin size={16} className="text-primary" />
-            <span>{event.location}</span>
+            {event.isOnline ? <Globe size={16} className="text-primary" /> : <MapPin size={16} className="text-primary" />}
+            {event.isOnline && event.onlineUrl ? (
+              <a href={event.onlineUrl} target="_blank" rel="noreferrer" className="text-primary inline-flex items-center gap-1 underline-offset-2 hover:underline truncate">
+                Open meeting link <ExternalLink size={12} />
+              </a>
+            ) : (
+              <span>{event.location}</span>
+            )}
           </div>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <Users size={16} className="text-primary" />
@@ -245,6 +289,25 @@ const EventDetail = ({ event, onBack, onJoinSpace }: EventDetailProps) => {
           )}
         </div>
       </div>
+
+      <AlertDialog open={showDelete} onOpenChange={setShowDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this event?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove "{event.title}" and notify all participants. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <EditEventDialog event={event} open={showEdit} onOpenChange={setShowEdit} />
     </div>
   );
 };

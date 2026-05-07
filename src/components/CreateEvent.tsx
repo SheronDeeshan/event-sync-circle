@@ -42,6 +42,8 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
   const [coverImage, setCoverImage] = useState<string>("");
   const [uploadingCover, setUploadingCover] = useState(false);
   const [customTag, setCustomTag] = useState("");
+  const [isOnline, setIsOnline] = useState(false);
+  const [onlineUrl, setOnlineUrl] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleCoverSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -80,13 +82,15 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
   };
 
   const handleCreate = async () => {
-    if (!title || !description || !location || !date) return;
+    if (!title || !description || !date) return;
+    if (!isOnline && !location) return;
+    if (isOnline && !onlineUrl) return;
     const created = await createEvent({
       title,
       description,
-      location,
-      latitude: lat ?? null,
-      longitude: lng ?? null,
+      location: isOnline ? "Online" : location,
+      latitude: isOnline ? null : (lat ?? null),
+      longitude: isOnline ? null : (lng ?? null),
       date,
       endDate: isMultiDay ? endDate : undefined,
       time,
@@ -99,6 +103,8 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
       transportInfo: transportInfo || undefined,
       weatherAlertsEnabled: weatherAlerts,
       anonymousInvites,
+      isOnline,
+      onlineUrl: isOnline ? onlineUrl : undefined,
       importedFrom: null,
     });
     if (created) onCreated();
@@ -196,13 +202,33 @@ const CreateEvent = ({ onBack, onCreated }: CreateEventProps) => {
           </div>
 
           <div>
-            <label className="text-sm font-medium text-foreground mb-1.5 block">Location</label>
-            <MapPicker
-              value={location}
-              lat={lat}
-              lng={lng}
-              onChange={(loc, la, lo) => { setLocation(loc); setLat(la); setLng(lo); }}
-            />
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-sm font-medium text-foreground">{isOnline ? "Meeting link" : "Location"}</label>
+              <button
+                type="button"
+                onClick={() => setIsOnline(!isOnline)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                  isOnline ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground"
+                }`}
+              >
+                {isOnline ? "🌐 Online" : "📍 In person"}
+              </button>
+            </div>
+            {isOnline ? (
+              <Input
+                placeholder="https://zoom.us/j/… or Meet/Discord link"
+                value={onlineUrl}
+                onChange={(e) => setOnlineUrl(e.target.value)}
+                className="h-12 rounded-xl bg-secondary border-0 text-foreground placeholder:text-muted-foreground"
+              />
+            ) : (
+              <MapPicker
+                value={location}
+                lat={lat}
+                lng={lng}
+                onChange={(loc, la, lo) => { setLocation(loc); setLat(la); setLng(lo); }}
+              />
+            )}
           </div>
 
           {/* Multi-day toggle + dates */}
