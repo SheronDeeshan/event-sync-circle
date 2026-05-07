@@ -22,16 +22,22 @@ const ProfileScreen = () => {
   const [showAddCircle, setShowAddCircle] = useState(false);
   const [newCircleName, setNewCircleName] = useState("");
   const [newCircleEmoji, setNewCircleEmoji] = useState("🎓");
+  const [newCircleDesc, setNewCircleDesc] = useState("");
+  const [newCircleAvatar, setNewCircleAvatar] = useState("");
+  const [circleSearch, setCircleSearch] = useState("");
   const [editingInterests, setEditingInterests] = useState(false);
   const [tempInterests, setTempInterests] = useState<string[]>([]);
   const [editingProfile, setEditingProfile] = useState(false);
   const [editName, setEditName] = useState("");
   const [editBio, setEditBio] = useState("");
   const [manageCircleId, setManageCircleId] = useState<string | null>(null);
+  const [editCircleDesc, setEditCircleDesc] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [invitePhone, setInvitePhone] = useState("");
   const [memberSearch, setMemberSearch] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const circleAvatarRef = useRef<HTMLInputElement>(null);
+  const editCircleAvatarRef = useRef<HTMLInputElement>(null);
 
   if (!user) return null;
 
