@@ -49,7 +49,7 @@ const AppContent = () => {
         <EventDetail
           event={selectedEvent}
           onBack={() => { setScreen("home"); setSelectedEventId(null); }}
-          onJoinSpace={() => setScreen("collaboration")}
+          onJoinSpace={() => { setCollabFrom("event-detail"); setScreen("collaboration"); }}
         />
         <BottomNav active="" onNavigate={(tab) => { setScreen(tab as Screen); setSelectedEventId(null); }} unreadNotifications={unreadCount} />
       </>
