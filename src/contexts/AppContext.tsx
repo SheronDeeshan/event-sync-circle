@@ -701,6 +701,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         category: expense.category,
       }],
     }));
+    // Notify other participants of budget change
+    const ev = events.find((e) => e.id === eventId);
+    if (ev) {
+      const recipients = ev.participants.map((p) => p.id).filter((id) => id !== user.id);
+      if (recipients.length) {
+        await supabase.rpc("notify_users", {
+          _user_ids: recipients,
+          _type: "expense",
+          _title: "Budget updated",
+          _body: `${user.name} added "${expense.title}" ($${expense.amount}) to ${ev.title}`,
+          _event_id: eventId,
+        });
+      }
+    }
   };
 
   const markNotificationRead = async (id: string) => {
@@ -709,6 +723,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // ====== CHAT / EXPENSES ======
+  const lastChatNotifAt = React.useRef<Record<string, number>>({});
   const sendMessage = async (eventId: string, content: string, imageUrl?: string) => {
     if (!user) return;
     const { error } = await supabase.from("messages").insert({
@@ -717,7 +732,26 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       content: imageUrl || content,
       message_type: imageUrl ? "image" : "user",
     });
-    if (error) toast.error(error.message);
+    if (error) { toast.error(error.message); return; }
+    // Throttled chat notification: at most once per 2 min per event
+    const now = Date.now();
+    const last = lastChatNotifAt.current[eventId] || 0;
+    if (now - last > 2 * 60 * 1000) {
+      lastChatNotifAt.current[eventId] = now;
+      const ev = events.find((e) => e.id === eventId);
+      if (ev) {
+        const recipients = ev.participants.map((p) => p.id).filter((id) => id !== user.id);
+        if (recipients.length) {
+          await supabase.rpc("notify_users", {
+            _user_ids: recipients,
+            _type: "chat",
+            _title: `New messages in ${ev.title}`,
+            _body: `${user.name}: ${(content || "📷 Photo").slice(0, 80)}`,
+            _event_id: eventId,
+          });
+        }
+      }
+    }
   };
 
   const uploadChatImage = async (eventId: string, file: File): Promise<string | null> => {
