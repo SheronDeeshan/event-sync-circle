@@ -15,6 +15,8 @@ export interface CircleGroup {
   memberCount: number;
   members: string[];
   createdBy: string;
+  description?: string;
+  avatarUrl?: string;
 }
 
 export type EventStatus = "draft" | "open" | "active" | "completed" | "cancelled";
