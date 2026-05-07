@@ -17,6 +17,7 @@ const AppContent = () => {
   const { isAuthenticated, loading, events, notifications } = useApp();
   const [screen, setScreen] = useState<Screen>("home");
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [collabFrom, setCollabFrom] = useState<Screen>("event-detail");
 
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center text-muted-foreground text-sm">Loading…</div>;
