@@ -15,6 +15,7 @@ const ProfileScreen = () => {
     user, logout, circleGroups, addCircleGroup, removeCircleGroup,
     updateUserInterests, events, profiles,
     updateUserProfile, uploadAvatar,
+    updateCircleGroup, uploadCircleAvatar,
     addCircleMember, removeCircleMember, createCircleInvite,
   } = useApp();
 
