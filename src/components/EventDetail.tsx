@@ -131,8 +131,14 @@ const EventDetail = ({ event, onBack, onJoinSpace }: EventDetailProps) => {
             <span>{event.time}</span>
           </div>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
-            <MapPin size={16} className="text-primary" />
-            <span>{event.location}</span>
+            {event.isOnline ? <Globe size={16} className="text-primary" /> : <MapPin size={16} className="text-primary" />}
+            {event.isOnline && event.onlineUrl ? (
+              <a href={event.onlineUrl} target="_blank" rel="noreferrer" className="text-primary inline-flex items-center gap-1 underline-offset-2 hover:underline truncate">
+                Open meeting link <ExternalLink size={12} />
+              </a>
+            ) : (
+              <span>{event.location}</span>
+            )}
           </div>
           <div className="flex items-center gap-3 text-sm text-muted-foreground">
             <Users size={16} className="text-primary" />
